@@ -10,8 +10,8 @@
   "license": "MIT",
   "scripts": {
     "changeset": "changeset",
-    "version": "changeset version && node scripts/sync-plugin-version.mjs && ./scripts/sync-manifest.sh",
-    "check": "node scripts/sync-plugin-version.mjs --check && ./scripts/sync-manifest.sh"
+    "version": "changeset version && node scripts/sync-plugin-version.mjs && ./scripts/sync-manifest.sh && ./scripts/gen-catalog.sh",
+    "check": "node scripts/sync-plugin-version.mjs --check && ./scripts/sync-manifest.sh && ./scripts/gen-catalog.sh"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0"
