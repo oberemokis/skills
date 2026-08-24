@@ -171,6 +171,34 @@ for (const u of urls) useFetch(u)
 
 Имя начинается с `use`, возвращается обычный объект с ref-ами, а не `reactive`: из `reactive` нельзя деструктурировать без потери реактивности.
 
+### Контекст через provide отдавай закрытым
+
+Ключ типизированный, наружу только чтение и названные действия, отсутствие контекста падает сразу.
+
+```ts
+// хорошо
+export const cartKey: InjectionKey<CartContext> = Symbol("cart")
+
+provide(cartKey, { items: readonly(items), addItem })
+
+export function useCart(): CartContext {
+  const cart = inject(cartKey)
+  if (!cart) throw new Error("useCart вызван вне CartProvider")
+
+  return cart
+}
+```
+
+```ts
+// плохо: строковый ключ, состояние открыто на запись, отсутствие молчит
+provide("cart", { items, addItem })
+
+const cart = inject<CartContext>("cart")
+cart.addItem(item)
+```
+
+Отдав `ref` как есть, вы разрешили менять состояние из любого потомка, и найти автора правки потом нечем. Подробности и остальные ловушки в [PROVIDE-INJECT.md](./PROVIDE-INJECT.md).
+
 ### Math.random и new Date в рендере ломают гидратацию
 
 На сервере и клиенте получаются разные значения. Считай на сервере детерминированно, недетерминированное переноси в `onMounted`.
@@ -186,7 +214,7 @@ for (const u of urls) useFetch(u)
 <div :id="`field-${Math.random()}`" />
 ```
 
-Разбор текстов ошибок гидратации и `data-allow-mismatch` в [SSR.md](./SSR.md).
+Разбор текстов ошибок гидратации и `data-allow-mismatch` лежит в [nuxt/SSR.md](../nuxt/SSR.md): серверный рендеринг в проектах бывает только через Nuxt.
 
 ## Привязано к версии
 
@@ -223,4 +251,4 @@ for (const u of urls) useFetch(u)
 - [REACTIVITY.md](./REACTIVITY.md), computed и watch: тайминги flush, стабильность ссылок, прокси и равенство. Читать, когда значение обновляется не тогда, когда ожидалось
 - [PROPS-EMITS.md](./PROPS-EMITS.md), пропсы, события, `defineModel`, дефолты в 3.5. Читать при проектировании интерфейса компонента
 - [TEMPLATE-REFS.md](./TEMPLATE-REFS.md), ссылки на элементы и компоненты, `useTemplateRef`, `v-for`, `defineExpose`. Читать, когда ссылка пуста или указывает не туда
-- [SSR.md](./SSR.md), несовпадения гидратации: причины, тексты ошибок, `data-allow-mismatch`. Читать при работе с серверным рендерингом
+- [PROVIDE-INJECT.md](./PROVIDE-INJECT.md), контекст через `provide`: типизированный ключ, закрытие состояния на запись, громкое падение при отсутствии. Читать, когда состояние идёт вниз мимо пропсов
