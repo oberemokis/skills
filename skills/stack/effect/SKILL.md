@@ -1,99 +1,249 @@
 ---
 name: effect
-description: Указатель на документацию Effect, которая едет вместе с пакетом. Правил здесь нет намеренно: единственный источник это node_modules/effect/AGENTS.md. Читать перед первой строкой кода на Effect и перед установкой пакета в новый проект.
+description: Effect 3 в монорепе: сервисы через Effect.Service со слоем Default, ошибки как Data.TaggedError, Effect.gen и почему в нём нельзя async, Option вместо null, разделение сервиса и репозитория. Читать перед написанием или правкой кода на Effect.
 ---
 
 # Effect
 
 > Точка входа: [skills/core](../../core/SKILL.md). Если core ещё не прочитан, прочитать его до этого скилла.
 
-Effect пока не используется ни в одном проекте. Скилл существует, чтобы задать источник правил и не дать начать с устаревшего API.
+Версия: `effect@^3.21.4`, третья мажорная. Используется в семи пакетах `ad-tune`: `shared/schemes`, `shared/config`, `shared/api`, `packages/test`, `apps/web/posts`, `apps/api/posts`, `apps/api/harvester`.
+
+Версия выше не украшение. Правила про поведение переживают мажорные обновления, а всё из раздела «Привязано к версии» перестаёт быть верным вместе с ней: если в `package.json` версия другая, сверь имена до того, как напишешь.
+
+Главная опасность здесь обратная обычной. Четвёртая версия вышла и переименовала почти всё, поэтому свежие примеры и свежая документация описывают API, которого в вашем коде нет. Раздел «Привязано к версии» защищает от того, чтобы притащить его сюда.
 
 ## Когда применять
 
-- ставишь Effect в проект впервые
-- пишешь или правишь код на Effect
+- пишешь или правишь код на Effect в любом из семи пакетов
+- заводишь сервис, репозиторий или типизированную ошибку
+- разбираешься, почему тип не сходится или зависимость не разрешается
 
 ## Когда НЕ применять
 
-- обычный асинхронный код на промисах: Effect для этого не нужен
-- миграция с v3 на v4: там своя процедура, см. ссылки
+- обычный код без Effect: правила типизации в `typescript`
+- код компонентов Vue: это `vue`, Effect там не используется
+- миграция на четвёртую версию: это отдельная работа, а не правка по ходу
+
+## Соглашения проекта
+
+Выведены из `apps/api/posts/src`.
+
+- сервис и репозиторий лежат в отдельных файлах, `service.ts` и `repository.ts`
+- ошибки в своём модуле `errors.ts`
+- сервис объявляется классом через `Effect.Service` с `accessors: true`
+- зависимости перечисляются слоями `Default` в поле `dependencies`
+- отсутствие значения выражается через `Option`, а не через `null`
+- вспомогательные функции вынесены наружу и подставляются в `pipe`
 
 ## Правила
 
-### Читай документацию из пакета, а не из памяти
+### Сервис объявляется классом Effect.Service
 
-Единственный источник правил это `node_modules/effect/AGENTS.md`, около 380 строк, устроенный как оглавление со ссылками на исполняемые примеры. Чего в нём нет, ищи в `node_modules/effect/src` и `node_modules/effect/ai-docs/src`.
+```ts
+// хорошо
+export class PostsService extends Effect.Service<PostsService>()(
+  "PostsService",
+  {
+    accessors: true,
+    dependencies: [PostsRepository.Default],
+    effect: Effect.gen(function* () {
+      const repository = yield* PostsRepository
 
-Прочитать его надо целиком до первой строки кода. Модель обучена в основном на v3, а установлена будет v4, где переехали сервисы, ошибки и половина имён.
-
-```bash
-# хорошо: явный канал или точная версия
-pnpm add effect@rc
-# в монорепе в корень, чтобы были доступны исходники
-pnpm add -D effect@rc
+      return {
+        list: () => repository.findAll(),
+      }
+    }),
+  },
+) {}
 ```
 
-```bash
-# плохо: канал beta отстал, официальный скилл его не обновлял с 10 августа
-pnpm add effect@beta
+```ts
+// плохо: имена из четвёртой версии, в третьей их нет
+export class PostsService extends Context.Service<PostsService>()(
+  "app/posts/PostsService",
+) {}
 ```
 
-### При установке пропиши источник в инструкции проекта
+`dependencies` принимает слои, и у сервиса, объявленного через `Effect.Service`, слой генерируется автоматически под именем `Default`. Именно этой автоматики в четвёртой версии больше нет, поэтому примеры оттуда сюда не переносятся.
 
-Чтобы правило действовало без этого скилла, добавь в `AGENTS.md` или `CLAUDE.md` проекта абзац: перед написанием кода на Effect прочитать `node_modules/effect/AGENTS.md` полностью и идти по ссылкам оттуда, а чего гайд не покрывает, искать в `node_modules/effect/src`.
+`accessors: true` даёт доступ к методам сервиса без ручного `yield*` на каждый вызов.
 
-```md
-хорошо: в AGENTS.md проекта
+### Ошибка это класс, а не строка
 
-## Effect
-
-Перед написанием кода на Effect прочитать `node_modules/effect/AGENTS.md`
-целиком и идти по ссылкам из него. Чего в гайде нет, искать
-в `node_modules/effect/src`.
+```ts
+// хорошо
+export class PostNotFound extends Data.TaggedError("PostNotFound")<{
+  readonly id: number
+}> {}
 ```
 
-```md
-плохо: в AGENTS.md проекта
-
-## Effect
-
-Используем Effect для обработки ошибок и внедрения зависимостей.
+```ts
+// плохо: тег потерян, catchTag работать не будет
+export const postNotFound = (id: number) =>
+  Effect.fail(`пост ${id} не найден`)
 ```
 
-Второй вариант выглядит как инструкция, но не задаёт источник, поэтому агент напишет код по памяти, то есть по третьей версии.
+Тег это дискриминатор, по нему работает `Effect.catchTag`. Поля объявляются `readonly` и несут контекст ошибки: что искали и с какими данными.
+
+### Провал возвращается через return yield*
+
+```ts
+// хорошо
+const post = yield* repository.findById(id)
+if (Option.isNone(post)) {
+  return yield* new PostNotFound({ id })
+}
+```
+
+```ts
+// плохо: без return TypeScript считает, что выполнение продолжится
+if (Option.isNone(post)) {
+  yield* new PostNotFound({ id })
+}
+```
+
+Без `return` тип успеха выводится неверно, и ошибка всплывёт ниже в непонятном месте.
+
+### Внутри Effect.gen нет async, await и throw
+
+Генератор синтаксически похож на асинхронную функцию, и это главная ловушка.
+
+```ts
+// хорошо
+Effect.gen(function* () {
+  const response = yield* fetchPost(id)
+
+  return response
+})
+```
+
+```ts
+// плохо: не скомпилируется, а если обойти типы, сломается семантика
+Effect.gen(async function* () {
+  const response = await fetch(url)
+
+  return response
+})
+```
+
+Effect это описание работы, а не запущенная работа. Сохранив его в переменную, вы не получите кеш: при каждом запуске он выполняется заново.
+
+### Отсутствие значения выражается Option
+
+```ts
+// хорошо
+const orNotFound = (id: number) =>
+  Option.match({
+    onNone: () => new PostNotFound({ id }),
+    onSome: Effect.succeed,
+  })
+
+repository.findById(id).pipe(Effect.flatMap(orNotFound(id)))
+```
+
+```ts
+// плохо: null уезжает вниз, и каждый вызывающий обязан его проверять
+const post = yield* repository.findById(id)
+if (post === null) return yield* new PostNotFound({ id })
+```
+
+### Сервис не ходит в базу сам
+
+Репозиторий знает про хранилище, сервис знает про правила. Разделение видно по файлам и держится тем, что репозиторий это отдельный сервис в `dependencies`.
+
+```ts
+// хорошо: сервис получает репозиторий зависимостью
+dependencies: [PostsRepository.Default]
+```
+
+```ts
+// плохо: запрос внутри сервиса, подменить нечем
+effect: Effect.gen(function* () {
+  const rows = yield* sql`select * from posts`
+})
+```
+
+Это то же правило, что в `test`: подменяется граница процесса, а не свой модуль. Репозиторий и есть та граница.
 
 ## Привязано к версии
 
-Переименования из v3 в v4. Модель обучена в основном на v3, поэтому предложит левый столбец. Точные формулировки всегда в `AGENTS.md` установленного пакета, здесь только чтобы не начать с мёртвого API.
+Здесь третья версия. Всё в правом столбце это четвёртая, и писать это в текущем коде нельзя: таких имён в установленном пакете нет.
 
-| Было в v3 | Стало в v4 |
+| Здесь, в третьей | В четвёртой стало |
 | --- | --- |
-| `Context.Tag` | `Context.Service`, и это структурная переделка, а не переименование |
-| `MyService.Default`, `dependencies: [...]` | слой руками через `Layer.effect` |
-| `Either` | `Result`, включая `onLeft` и `onRight` в `match` |
-| `catchAll`, `catchAllCause` | `catch`, `catchCause`, переименовано всё семейство |
-| `Effect.fork`, `Effect.forkDaemon` | `Effect.forkChild`, `Effect.forkDetach` |
+| `Effect.Service` со слоем `Default` и полем `dependencies` | `Context.Service`, слой пишется руками через `Layer.effect` |
+| `Context.Tag` | `Context.Service` |
+| `Either` | `Result` |
+| `catchAll`, `catchAllCause` | `catch`, `catchCause` |
 | `Layer.scoped` | `Layer.effect` |
 | `FiberRef` | `Context.Reference` |
+| `Effect.fork`, `Effect.forkDaemon` | `Effect.forkChild`, `Effect.forkDetach` |
 | `Micro`, `Runtime<R>` | удалены |
+
+Признак, по которому видно, что пример из документации не подходит: в нём `Context.Service`, `Result` или слой, собранный руками. Такой пример относится к четвёртой версии.
+
+В четвёртой версии в пакете появляется файл `node_modules/effect/AGENTS.md` с агентской документацией. В третьей его нет, поэтому источником правды остаются исходники в `node_modules/effect/src`.
+
+Переход на четвёртую это не правка по ходу: там переехали сервисы, ошибки и половина имён, а часть функциональности живёт в `effect/unstable/*`, где ломающие изменения разрешены в минорных выпусках.
 
 ## Антипаттерны
 
-Поведенческие, от версии не зависят.
+### Имена из четвёртой версии
+
+```ts
+// плохо: ничего из этого в третьей версии не существует
+import { Result } from "effect"
+
+export class Db extends Context.Service<Db>()("app/Db") {}
+program.pipe(Effect.catch(handler))
+```
+
+```ts
+// хорошо
+import { Either } from "effect"
+
+export class Db extends Effect.Service<Db>()("Db", {
+  effect: make,
+}) {}
+program.pipe(Effect.catchAll(handler))
+```
+
+### Обход системы эффектов
+
+```ts
+// плохо
+Effect.gen(function* () {
+  const data = await fetch(url) // await внутри генератора
+  throw new Error("не вышло") // throw станет дефектом, а не ошибкой в канале E
+  const now = new Date() // время не подменить в тесте
+  const id = Math.random() // и случайность тоже
+})
+```
+
+```ts
+// хорошо
+Effect.gen(function* () {
+  const data = yield* httpClient.get(url)
+  if (!data.ok) return yield* new RequestFailed({ url })
+
+  const now = yield* DateTime.now
+  const id = yield* Random.nextInt
+})
+```
+
+### Прочее
 
 | Не так | Так | Почему |
 | --- | --- | --- |
-| копировать правила Effect в этот файл | оставить ссылку на пакет | копия расходится с версией библиотеки, авторы Effect сами удалили свои шесть тысяч строк гайдов по этой причине |
-| `async`/`await` или `throw` внутри `Effect.gen` | комбинаторы Effect | генератор похож на асинхронную функцию, и это главная ловушка синтаксиса |
-| `yield* new MyError(...)` без `return` | `return yield* new MyError(...)` | без `return` TypeScript считает, что выполнение продолжится, и выводит неверный тип успеха |
-| `new Date()`, `Date.now()`, `Math.random()` | модули `DateTime` и `Random` | иначе время и случайность нельзя подменить в тесте |
-| свои `isString`, `isRecord` | модуль `Predicate` | в пакете есть готовые, композируемые через `and`, `or`, `not` |
-| функция, возвращающая `Effect.gen(...)` | `Effect.fn("имя")` | иначе теряются стектрейсы и span |
-| хранить Effect в переменной как кеш результата | запускать заново или кешировать явно | Effect это описание, а не запущенная работа |
+| `Effect.fail("строка")` | класс через `Data.TaggedError` | без тега не работает `catchTag` |
+| функция, возвращающая `Effect.gen(...)` | `Effect.fn("имя")` | иначе теряются стектрейсы и участки трассировки |
+| свои `isString`, `isRecord` | модуль `Predicate` | в пакете есть готовые и композируемые |
+| ручной парсинг ответа | `Schema` | иначе валидация расходится с типом |
+| Effect в переменной как кеш результата | запускать заново или кешировать явно | Effect это описание, а не результат |
+| незакрытый канал `R` в сигнатуре наружу | разрядить слоями до запуска | оставленный `R` это незакрытая зависимость, а не мелкая типовая ошибка |
 
 ## Ссылки
 
-- `node_modules/effect/AGENTS.md`, единственный источник правил. Появляется на диске после установки пакета
-- `node_modules/effect/ai-docs/src`, около 50 файлов с исполняемыми примерами по темам
-- [MIGRATION.md в репозитории Effect](https://github.com/Effect-TS/effect/blob/main/MIGRATION.md), если понадобится переход с v3 на v4. Справочник переименований там на 16 тысяч строк, читать его целиком нельзя, только искать по символу
+- Исходники в `node_modules/effect/src`: в третьей версии это точнее любой документации, потому что документация в сети уже описывает четвёртую
+- Ваш код на Effect: `apps/api/posts/src` содержит полный пример сервиса, репозитория и ошибки
