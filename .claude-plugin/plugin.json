@@ -16,7 +16,6 @@
   "skills": [
     "./skills/architecture",
     "./skills/core",
-    "./skills/design",
     "./skills/git/commit",
     "./skills/grill",
     "./skills/misc/humanizer",
