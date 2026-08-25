@@ -117,4 +117,4 @@ const api = {
 | [tdd](./tdd/SKILL.md) | в каком порядке писать тест и код |
 | [coverage](./coverage/SKILL.md) | что покрывать, что нет, откуда брать список случаев |
 | [test-review](./test-review/SKILL.md) | как ревьюить тест, признаки плохого теста, антипаттерны |
-| [bug-hunting](./bug-hunting/SKILL.md) | поиск причины дефекта и порядок починки |
+| [bug-hunting](./bug-hunting/SKILL.md) | цикл, ловящий баг, гипотезы, причина, порядок починки |
