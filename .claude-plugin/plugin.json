@@ -1,6 +1,6 @@
 {
   "name": "skills",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Ilya Oberemok's agent skills for Claude Code: task levels, grilling before work, testing methodology and per-technology rules.",
   "author": {
     "name": "Ilya Oberemok"
