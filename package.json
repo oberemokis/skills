@@ -1,6 +1,6 @@
 {
   "name": "skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Ilya Oberemok's agent skills for Claude Code",
   "repository": {
@@ -10,7 +10,7 @@
   "license": "MIT",
   "scripts": {
     "changeset": "changeset",
-    "version": "changeset version && node scripts/sync-plugin-version.mjs && ./scripts/sync-manifest.sh && ./scripts/gen-catalog.sh",
+    "bump": "changeset version && node scripts/sync-plugin-version.mjs && ./scripts/sync-manifest.sh && ./scripts/gen-catalog.sh",
     "check": "node scripts/sync-plugin-version.mjs --check && ./scripts/sync-manifest.sh --check && ./scripts/gen-catalog.sh --check && ./scripts/check-links.sh"
   },
   "devDependencies": {

@@ -10,16 +10,18 @@
 
 ```bash
 pnpm changeset          # описать правку, выбрать patch, minor или major
-pnpm version            # поднять версию, собрать CHANGELOG, обновить манифест
+pnpm bump               # поднять версию, собрать CHANGELOG, обновить манифест
 git add -A && git commit
 git push
 ```
 
-Дальше у себя: `/plugin marketplace update oberemokis`.
+Дальше у себя: `/plugin marketplace update oberemokis`, затем переустановить плагин.
+
+Скрипт называется `bump`, а не `version`, потому что `pnpm version` это встроенная команда. Одноимённый скрипт она перехватывает: печатает версии Node и молча ничего не поднимает, а `git status` после этого выглядит так, будто выпуск прошёл.
 
 `pnpm changeset` создаёт файл в `.changeset/` с описанием изменения. Описание идёт в `CHANGELOG.md` как есть, поэтому писать надо для читателя: что изменилось в поведении и почему, а не какие файлы тронуты.
 
-`pnpm version` делает четыре вещи по порядку:
+`pnpm bump` делает четыре вещи по порядку:
 
 1. `changeset version` поднимает версию в `package.json` и дописывает `CHANGELOG.md`, съедая файлы из `.changeset/`
 2. `sync-plugin-version.mjs` копирует новую версию в манифест плагина

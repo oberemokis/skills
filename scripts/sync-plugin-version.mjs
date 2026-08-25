@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Копирует версию из package.json в .claude-plugin/plugin.json.
 //
-// Запускается как часть `pnpm version`, сразу после `changeset version`.
+// Запускается как часть `pnpm bump`, сразу после `changeset version`.
 // С флагом --check ничего не меняет и завершается с кодом 1, если версии разошлись.
 //
 // Зачем: changesets умеет поднимать версию только в package.json, а плагин
