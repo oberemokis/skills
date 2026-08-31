@@ -14,7 +14,6 @@
     "code-review"
   ],
   "skills": [
-    "./skills/architecture",
     "./skills/core",
     "./skills/git/commit",
     "./skills/grill",
