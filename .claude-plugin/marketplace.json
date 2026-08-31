@@ -6,7 +6,7 @@
   "description": "Ilya Oberemok's skills for engineering work, as an installable Claude Code plugin.",
   "plugins": [
     {
-      "name": "skills",
+      "name": "oberemokis-skills",
       "source": "./",
       "description": "Agent skills for engineering work: TDD, code review, domain modelling, diagnosing bugs, grilling, and more.",
       "category": "engineering",

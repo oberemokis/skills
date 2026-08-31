@@ -1,12 +1,12 @@
 # skills
 
-Личные agent skills для Claude Code. [`skills/core`](./skills/core/SKILL.md) подключается сам и несёт базовую настройку: правила текста, маршрутизацию к скиллам стека, критерии завершения. Дорогие этапы вызываются руками: `/skills:grill` перед работой, `/skills:humanizer` для вычитки текста.
+Личные agent skills для Claude Code. [`skills/core`](./skills/core/SKILL.md) подключается сам и несёт базовую настройку: правила текста, маршрутизацию к скиллам стека, критерии завершения. Дорогие этапы вызываются руками: `/oberemokis-skills:grill` перед работой, `/oberemokis-skills:humanizer` для вычитки текста.
 
 ## Установка
 
 ```
 /plugin marketplace add oberemokis/skills
-/plugin install skills@oberemokis
+/plugin install oberemokis-skills@oberemokis
 ```
 
 Обновление после изменений:
