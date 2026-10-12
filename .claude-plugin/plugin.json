@@ -20,6 +20,7 @@
     "./skills/grill",
     "./skills/misc/humanizer",
     "./skills/stack/effect",
+    "./skills/stack/golang",
     "./skills/stack/nitro",
     "./skills/stack/nuxt",
     "./skills/stack/pinia",
