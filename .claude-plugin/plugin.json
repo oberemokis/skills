@@ -20,6 +20,7 @@
     "./skills/git/worktree",
     "./skills/grill",
     "./skills/misc/humanizer",
+    "./skills/review",
     "./skills/stack/effect",
     "./skills/stack/golang",
     "./skills/stack/nitro",
