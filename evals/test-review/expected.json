@@ -1,0 +1,7 @@
+[
+  { "id": "F1", "file": "cart.test.ts", "line": 7, "item": 5, "level": 1, "what": "ожидание пересчитано тем же сложением, что и код" },
+  { "id": "F2", "file": "cart.test.ts", "line": 15, "item": null, "level": 1, "what": "пропущенный тест через it.skip" },
+  { "id": "F3", "file": "cart.test.ts", "line": 22, "item": null, "level": 1, "what": "if внутри теста: при другом входе проверки не будет" },
+  { "id": "F4", "file": "orders.test.ts", "line": 11, "item": 4, "level": 2, "what": "проверка вызова вместо результата" },
+  { "id": "F5", "file": "orders.test.ts", "line": 19, "item": 8, "level": 3, "what": "зависимость от порядка через общее состояние lastOrderId" }
+]

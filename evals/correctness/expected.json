@@ -1,0 +1,6 @@
+[
+  { "id": "C1", "file": "fetchPrice.ts", "line": 7, "level": "P1", "what": "catch проглатывает ошибку и возвращает 0 как цену" },
+  { "id": "C2", "file": "fetchPrice.ts", "line": 12, "level": "P2", "what": "fetch без await и без обработки ошибки, неотловленный промис" },
+  { "id": "C3", "file": "fetchPrice.ts", "line": 17, "level": "P2", "what": "пустой массив даёт NaN, граничный случай не обработан" },
+  { "id": "C4", "file": "listen.ts", "line": 2, "level": "P2", "what": "обработчик resize не снимается, утечка при повторном вызове" }
+]
