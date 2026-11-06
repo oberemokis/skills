@@ -39,7 +39,7 @@ fi
 paths=""
 drafts=""
 while IFS= read -r dir; do
-  desc=$(sed -n 's/^description: *//p' "$dir/SKILL.md" | head -1)
+  desc=$(sed -n 's/^description: *//p' "$dir/SKILL.md" | head -1 | sed 's/^"\(.*\)"$/\1/')
   if [ -z "$desc" ]; then
     echo "нет description: $dir/SKILL.md" >&2
     exit 1

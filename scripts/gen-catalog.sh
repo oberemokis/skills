@@ -34,7 +34,7 @@ current_group=""
 count=0
 
 while IFS= read -r file; do
-  description=$(grep -m1 '^description:' "$file" | sed 's/^description: *//')
+  description=$(grep -m1 '^description:' "$file" | sed 's/^description: *//; s/^"\(.*\)"$/\1/')
 
   # Заготовка: в описании остался угловой плейсхолдер шаблона.
   case "$description" in

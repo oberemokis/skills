@@ -1,6 +1,6 @@
 ---
 name: effect
-description: Effect 3 в монорепе: сервисы через Effect.Service со слоем Default, ошибки как Data.TaggedError, Effect.gen и почему в нём нельзя async, Option вместо null, разделение сервиса и репозитория. Читать перед написанием или правкой кода на Effect.
+description: "Effect 3 в монорепе: сервисы через Effect.Service со слоем Default, ошибки как Data.TaggedError, Effect.gen и почему в нём нельзя async, Option вместо null, разделение сервиса и репозитория. Читать перед написанием или правкой кода на Effect."
 ---
 
 # Effect
