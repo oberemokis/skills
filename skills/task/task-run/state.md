@@ -7,7 +7,7 @@
 - `schema`: всегда `task-run/task@1`. `plugin`: версия и папка плагина, на котором начата задача.
 - `project`, `task`, `title`, `type` (`feature` или `bug`), `level`, `levelReason`.
 - `base`, `delivery` (`mr` или `push`), `branch`, `worktree` (абсолютный путь), `fleet`.
-- `session`: имя агента, workspace и панель herdr, ID сессии Claude. Вне herdr первые три `null`. ID сессии Claude бери из `herdr agent get "$HERDR_PANE_ID"` (`agent_session.value`), без herdr `null`.
+- `session`: `agent` это адрес терминала hc (`$HC_TERMINAL_ID`), только если `scripts/host.mjs` ответил `hc`, иначе `null`; `claudeSession` это `$CLAUDE_CODE_SESSION_ID`; `workspace` и `pane` всегда `null`, пространство и вкладка лежат в метках терминала.
 - `stage`: текущий этап, его состояние (`running`, `waiting-user`, `waiting-external`, `blocked`, `stopped`, `done`), `waiting` одной строкой и `since`. По `stage` оркестратор понимает, что с задачей, не читая экран.
 - `stages`: каждый этап один раз, статус и время, короткая `note`. Статус меняется заменой значения.
 - `context`: итог этапа start. Цель, критерии приёмки, тестовые случаи со швами, решения, открытые вопросы, документ эпика, имена заметок памяти, страницы стенда для вкладки (`pages`, у задачи без интерфейса пусто или нет). Продолжение в новой сессии берёт его отсюда.
@@ -42,6 +42,6 @@
 3. Обнови `session` своими значениями.
 4. Прерванный этап начинается заново. Правки в worktree считаются своими: покажи `git status --short` и diffstat одной строкой в чат и продолжай с них.
 5. Внешние шаги проверяй по разделу выше до любого действия.
-6. Worktree уже есть: проверь панель gitone (раздел «gitone» в `stages/worktree.md`). Прерванный этап implement или show у задачи с интерфейсом: стенд и новая вкладка по `stand.md`.
+6. Worktree уже есть: у ветки нет `branch.<ветка>.base`, запиши его из `base` файла (`git config branch.<ветка>.base <база>`), задачи с 2.x пришли без него. Затем раздел «Дифф» в `SKILL.md`. Прерванный этап implement или show у задачи с интерфейсом: стенд и новая вкладка по `stand.md`.
 
 Файл говорит `close: done`, а задачу вернули в работу: перенеси файл в `tasks/archive/<ID>-<дата>.json` и начни новый круг с этапа start.
