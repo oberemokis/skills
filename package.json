@@ -11,7 +11,7 @@
   "scripts": {
     "changeset": "changeset",
     "bump": "changeset version && node scripts/sync-plugin-version.mjs && ./scripts/sync-manifest.sh && ./scripts/gen-catalog.sh",
-    "check": "node scripts/sync-plugin-version.mjs --check && ./scripts/sync-manifest.sh --check && ./scripts/gen-catalog.sh --check && ./scripts/check-links.sh && ./scripts/check-task-leaks.sh && pnpm test",
+    "check": "node scripts/sync-plugin-version.mjs --check && ./scripts/sync-manifest.sh --check && ./scripts/gen-catalog.sh --check && ./scripts/check-links.sh && ./scripts/check-task-leaks.sh && pnpm test && ./scripts/check-hooks.sh",
     "test": "node --test skills/task/task-run/scripts/*.test.mjs",
     "eval": "node evals/score.mjs"
   },
