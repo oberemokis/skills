@@ -35,6 +35,8 @@
     "./skills/stack/vitest",
     "./skills/stack/vue",
     "./skills/stack/vueuse",
+    "./skills/task/task-fleet",
+    "./skills/task/task-run",
     "./skills/test",
     "./skills/test/bug-hunting",
     "./skills/test/coverage",

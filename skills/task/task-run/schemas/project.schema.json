@@ -1,0 +1,89 @@
+{
+  "$comment": "Данные проекта task-run. Проверяет scripts/check-json.mjs. Правила прозой лежат рядом в rules.md, контракт описан в project.md.",
+  "type": "object",
+  "required": ["schema", "project", "remotes", "taskId", "branch", "base", "commit", "tracker", "codeHost", "worktree", "checks"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "task-run/project@1" },
+    "project": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+    "remotes": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 3 } },
+    "taskId": { "type": "string", "minLength": 1 },
+    "branch": { "type": "string", "pattern": "\\{id\\}" },
+    "base": { "type": "string", "minLength": 1 },
+    "commit": { "type": "string", "pattern": "\\{summary\\}" },
+    "tracker": {
+      "type": "object",
+      "required": ["kind", "check"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "check": { "type": "string", "minLength": 1 }
+      }
+    },
+    "codeHost": {
+      "type": "object",
+      "required": ["kind", "host", "check"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "host": { "type": "string", "minLength": 1 },
+        "check": { "type": "string", "minLength": 1 }
+      }
+    },
+    "worktree": {
+      "type": "object",
+      "required": ["dir", "localFiles", "install", "exclude"],
+      "additionalProperties": false,
+      "properties": {
+        "dir": { "type": "string", "minLength": 1 },
+        "localFiles": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "install": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["cwd", "run"],
+            "additionalProperties": false,
+            "properties": { "cwd": { "type": "string" }, "run": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "exclude": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["paths", "run"],
+        "additionalProperties": false,
+        "properties": {
+          "paths": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "run": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "background": { "type": "boolean" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["paths", "with"],
+        "additionalProperties": false,
+        "properties": {
+          "paths": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+          "with": { "enum": ["review", "code-review"] },
+          "root": { "type": "string" }
+        }
+      }
+    },
+    "stand": {
+      "type": ["object", "null"],
+      "required": ["port", "cwd", "start"],
+      "additionalProperties": false,
+      "properties": {
+        "port": { "type": "integer", "minimum": 1 },
+        "cwd": { "type": "string" },
+        "start": { "type": "string", "minLength": 1 },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}
