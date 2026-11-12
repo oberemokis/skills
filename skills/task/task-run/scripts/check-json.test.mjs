@@ -111,6 +111,16 @@ const cases = [
   ],
   ['лишнее поле в задаче', () => ({ ...validTask(), mr: 12 }), ['$: лишнее поле mr']],
   ['пустой список критериев', () => ({ ...validTask(), context: { ...validTask().context, criteria: [] } }), ['$.context.criteria: нужно не меньше 1']],
+  [
+    'страницы стенда для вкладки',
+    () => ({ ...validTask(), context: { ...validTask().context, pages: ['/cameras?status=online'] } }),
+    [],
+  ],
+  [
+    'страница стенда полным адресом',
+    () => ({ ...validTask(), context: { ...validTask().context, pages: ['http://localhost:3000/cameras'] } }),
+    ['$.context.pages[0]: не подходит'],
+  ],
   ['чужая схема', () => ({ ...validTask(), schema: 'task-queue' }), ['$.schema: неизвестная схема']],
   ['проект без адресов', () => ({ ...validProject(), remotes: [] }), ['$.remotes: нужно не меньше 1']],
   ['шаблон ветки без ID', () => ({ ...validProject(), branch: 'feature/x' }), ['$.branch: не подходит']],

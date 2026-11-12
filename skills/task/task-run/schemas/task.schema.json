@@ -83,7 +83,8 @@
         "decisions": { "type": "array", "items": { "type": "string" } },
         "openQuestions": { "type": "array", "items": { "type": "string" } },
         "epicDoc": { "type": ["string", "null"] },
-        "memory": { "type": "array", "items": { "type": "string" } }
+        "memory": { "type": "array", "items": { "type": "string" } },
+        "pages": { "type": "array", "items": { "type": "string", "pattern": "^/" } }
       }
     },
     "findings": {
