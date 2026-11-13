@@ -26,8 +26,9 @@ report "ID задач конкретного проекта (в примерах
 mentions=$(grep -rnE '(^|[[:space:](«])@[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё0-9_.]*' "$target" || true)
 report "@-упоминания людей" "$mentions"
 
+# status.app это поле JSON `hc get`, а не хост.
 hosts=$(grep -rnoiE '\b[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|org|net|io|ru|studio|dev|app|team)\b' "$target" \
-  | grep -viE ':([a-z0-9-]+\.)*(example\.org|host\.org|mirror\.org)$' || true)
+  | grep -viE ':(([a-z0-9-]+\.)*(example\.org|host\.org|mirror\.org)|status\.app)$' || true)
 report "адреса хостов (в примерах example.org, host.org, mirror.org)" "$hosts"
 
 if [ "$found" -ne 0 ]; then
