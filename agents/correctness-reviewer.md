@@ -5,9 +5,9 @@ name: correctness-reviewer
 description: "Ищет ошибки поведения в переданном дифф TypeScript и Vue коде: проглоченные исключения, неотловленные промисы, граничные случаи, утечки ресурсов, гонки. Только читает, ничего не правит. Запускается из скилла review, для свободного вызова не предназначен."
 # Claude Code: только чтение и поиск, с lean-ctx и без него.
 tools: Read, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_expand
-# OpenCode: скрытый субагент, всё запрещено, кроме чтения и поиска; .env не читается.
+# OpenCode: субагент, всё запрещено, кроме чтения и поиска; .env не читается.
+# Без hidden: в OpenCode 2.2.7 он убирает агента из списка инструмента subagent, и модель берёт general.
 mode: subagent
-hidden: true
 permissions:
   - action: "*"
     resource: "*"

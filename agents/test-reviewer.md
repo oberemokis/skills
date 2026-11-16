@@ -7,9 +7,9 @@ description: "Проверяет тесты в переданном дифф Typ
 tools: Read, Grep, Glob, mcp__lean-ctx__ctx_read, mcp__lean-ctx__ctx_search, mcp__lean-ctx__ctx_glob, mcp__lean-ctx__ctx_expand
 skills:
   - test-review
-# OpenCode: скрытый субагент, всё запрещено, кроме чтения, поиска и скилла test-review; .env не читается.
+# OpenCode: субагент, всё запрещено, кроме чтения, поиска и скилла test-review; .env не читается.
+# Без hidden: в OpenCode 2.2.7 он убирает агента из списка инструмента subagent, и модель берёт general.
 mode: subagent
-hidden: true
 permissions:
   - action: "*"
     resource: "*"
