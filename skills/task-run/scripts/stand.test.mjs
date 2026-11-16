@@ -13,11 +13,11 @@ test('владелец записан до старта, команда стен
   const ownerPath = join(dir, 'owner')
 
   // Команда со встроенным кодом: ради неё скрипт и существует.
-  const child = serve({ ownerPath, owner: 'ABC-1 /p/.worktrees/feature-ABC-1', command: 'pwd > where; exit 3', cwd: dir })
+  const child = serve({ ownerPath, owner: 'PROJ-1 /p/.worktrees/feature-PROJ-1', command: 'pwd > where; exit 3', cwd: dir })
   const [code] = await once(child, 'exit')
 
   assert.equal(code, 3)
-  assert.equal(readFileSync(ownerPath, 'utf8'), 'ABC-1 /p/.worktrees/feature-ABC-1\n')
+  assert.equal(readFileSync(ownerPath, 'utf8'), 'PROJ-1 /p/.worktrees/feature-PROJ-1\n')
   // `where` лёг в dir, значит команда шла из папки стенда; pwd на macOS отдаёт путь через /private.
   assert.equal(realpathSync(readFileSync(join(dir, 'where'), 'utf8').trim()), realpathSync(dir))
 })

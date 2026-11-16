@@ -29,10 +29,10 @@ test('вопрос о доверии узнаётся по экрану Claude',
 
 const cases = [
   ['сессия fleet под обёрткой: оболочка впереди, Claude в статусе', terminal({ app: 'claude-code', labels: { 'task-fleet': '1' } }), 1],
-  ['Claude, запущенный руками в worktree', terminal({ argv0: 'claude', cwd: '/Users/me/project/.worktrees/feature-ABC-1' }), 1],
+  ['Claude, запущенный руками в worktree', terminal({ argv0: 'claude', cwd: '/Users/me/project/.worktrees/feature-PROJ-1' }), 1],
   ['Claude в основной папке проекта места не занимает', terminal({ app: 'claude-code', cwd: '/Users/me/project' }), 0],
   ['терминал fleet, из которого Claude вышел', terminal({ labels: { 'task-fleet': '1' } }), 0],
-  ['оболочка в worktree без Claude', terminal({ cwd: '/Users/me/project/.worktrees/feature-ABC-1' }), 0],
+  ['оболочка в worktree без Claude', terminal({ cwd: '/Users/me/project/.worktrees/feature-PROJ-1' }), 0],
   ['сама папка .worktrees ещё не worktree', terminal({ argv0: '/opt/bin/claude', cwd: '/Users/me/project/.worktrees' }), 0],
 ]
 
@@ -43,16 +43,16 @@ for (const [name, t, expected] of cases) {
 }
 
 test('промпт после -- уходит claude последним аргументом, после --session-id', () => {
-  const opts = options(['--name', 'feature-abc-1', '--cwd', '/p/.worktrees/feature-ABC-1', '--task', 'ABC-1', '--session', UUID,
-    '--', '/task-run ABC-1 --fleet --base dev'])
+  const opts = options(['--name', 'feature-proj-1', '--cwd', '/p/.worktrees/feature-PROJ-1', '--task', 'PROJ-1', '--session', UUID,
+    '--', '/task-run PROJ-1 --fleet --base dev'])
   const args = runArgs({ ...opts, ownSpace: 'main', parent: 't7', shell: '/bin/zsh' })
   assert.deepEqual(args.slice(args.indexOf('--')), [
-    '--', '/bin/zsh', '-lc', 'claude "$@"; exec "$SHELL" -l', 'claude', '--session-id', UUID, '/task-run ABC-1 --fleet --base dev',
+    '--', '/bin/zsh', '-lc', 'claude "$@"; exec "$SHELL" -l', 'claude', '--session-id', UUID, '/task-run PROJ-1 --fleet --base dev',
   ])
 })
 
 test('--resume поднимает ту же сессию вместо новой', () => {
-  const opts = options(['--name', 'n', '--cwd', '/p', '--task', 'ABC-1', '--session', UUID, '--resume', '--', 'продолжай'])
+  const opts = options(['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID, '--resume', '--', 'продолжай'])
   const args = runArgs({ ...opts, ownSpace: null, parent: 't7', shell: '/bin/zsh' })
   assert.deepEqual(args.slice(-3), ['--resume', UUID, 'продолжай'])
   assert.ok(!args.includes('--session-id'))
@@ -65,17 +65,17 @@ test('флаги claude после -- не съедаются разбором �
 })
 
 test('метки задачи, сессии и пространства; без своего пространства метки дерева нет', () => {
-  const opts = options(['--name', 'feature-abc-1', '--cwd', '/p', '--task', 'ABC-1', '--session', UUID])
+  const opts = options(['--name', 'feature-proj-1', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID])
   const labels = (args) => args.flatMap((a, i) => (args[i - 1] === '--label' ? [a] : []))
   assert.deepEqual(labels(runArgs({ ...opts, ownSpace: null, parent: 't7', shell: '/bin/zsh' })), [
-    'task-fleet=1', 'task=ABC-1', `claude-session=${UUID}`,
-    'herdr.space=fleet-feature-abc-1', 'herdr.tab=fleet-feature-abc-1-tab', 'task-fleet.parent=t7',
+    'task-fleet=1', 'task=PROJ-1', `claude-session=${UUID}`,
+    'herdr.space=fleet-feature-proj-1', 'herdr.tab=fleet-feature-proj-1-tab', 'task-fleet.parent=t7',
   ])
   assert.ok(labels(runArgs({ ...opts, ownSpace: 'main', parent: 't7', shell: '/bin/zsh' })).includes('task-fleet.space=main'))
 })
 
 test('без --session скрипт сам выдаёт новый UUID, а --resume без него отклоняется', () => {
-  const base = ['--name', 'n', '--cwd', '/p', '--task', 'ABC-1']
+  const base = ['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1']
   const first = options(base).session
   assert.match(first, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
   assert.notEqual(options(base).session, first)
@@ -83,9 +83,9 @@ test('без --session скрипт сам выдаёт новый UUID, а --re
 })
 
 test('плохие аргументы отклоняются до запуска', () => {
-  const base = ['--cwd', '/p', '--task', 'ABC-1', '--session', UUID]
-  assert.throws(() => options(['--name', 'Feature/ABC-1', ...base]), /--name/)
-  assert.throws(() => options(['--name', 'n', '--cwd', 'relative', '--task', 'ABC-1', '--session', UUID]), /--cwd/)
-  assert.throws(() => options(['--name', 'n', '--cwd', '/p', '--task', 'ABC-1', '--session', UUID.toUpperCase()]), /--session/)
+  const base = ['--cwd', '/p', '--task', 'PROJ-1', '--session', UUID]
+  assert.throws(() => options(['--name', 'Feature/PROJ-1', ...base]), /--name/)
+  assert.throws(() => options(['--name', 'n', '--cwd', 'relative', '--task', 'PROJ-1', '--session', UUID]), /--cwd/)
+  assert.throws(() => options(['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID.toUpperCase()]), /--session/)
   assert.throws(() => options(['--name', 'n', ...base, '--limit', '0']), /--limit/)
 })
