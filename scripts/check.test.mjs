@@ -1,6 +1,7 @@
 // Проверка, которая тихо сломалась, хуже отсутствующей: однажды она уже смотрела в несуществующую папку
 // и писала «утечек нет». Здесь на каждое замечание своя маленькая копия репозитория.
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -74,6 +75,23 @@ for (const [name, changes, expected] of cases) {
     assert.ok(found.some((p) => expected.test(p)), `нет замечания ${expected} среди:\n${found.join('\n')}`)
   })
 }
+
+test('в git-репозитории игнорируемый файл не проверяется, а новый неигнорируемый проверяется', () => {
+  const root = repo({
+    ...VALID,
+    '.gitignore': 'settings.local.json\n',
+    '.claude/settings.local.json': `{"dir": "/Users/${BAD_USER}/work"}\n`,
+    'docs/notes.md': `Как в ${BAD_ID}.\n`,
+  })
+  try {
+    execFileSync('git', ['init', '-q'], { cwd: root })
+    const found = check(root).problems.join('\n')
+    assert.doesNotMatch(found, /settings\.local\.json/)
+    assert.match(found, new RegExp(`docs/notes\\.md:1: ID задачи ${BAD_ID}`))
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
 
 test('проверка падает, если папки skills нет вовсе', () => {
   const root = repo({ 'README.md': 'Пусто.\n' })

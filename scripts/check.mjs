@@ -4,6 +4,7 @@
 //   node scripts/check.mjs [корень]
 //
 // Код выхода 0: всё в порядке; 1: есть замечания, они напечатаны по одному на строку.
+import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { basename, dirname, join, relative } from 'node:path'
 
@@ -31,6 +32,25 @@ function walk(root, dir = '') {
     if (entry.isDirectory()) return SKIP_DIRS.has(entry.name) ? [] : walk(root, path)
     return TEXT.test(entry.name) ? [path] : []
   })
+}
+
+// Проверяется то, что может уйти в коммит: файлы под git и новые, кроме игнорируемых. Локальные настройки
+// агентов в клоне (.claude/settings.local.json с личными путями) скрыты .gitignore и публикации не грозят.
+// Без git, как у фикстур теста, обходится вся папка.
+function files(root) {
+  let listed
+  try {
+    listed = execFileSync('git', ['-C', root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+  } catch {
+    return walk(root)
+  }
+  return listed
+    .split('\0')
+    .filter((f) => f && TEXT.test(f) && !f.split('/').some((part) => SKIP_DIRS.has(part)))
+    .filter((f) => existsSync(join(root, f)))
 }
 
 // Строки вне блоков кода ``` с их номерами.
@@ -171,10 +191,10 @@ export function check(root) {
   const problems = []
   const problem = (text) => problems.push(text)
   const { internal, count } = checkSkills(root, problem)
-  const files = walk(root)
-  const links = checkLinks(root, files, problem)
-  checkLeaks(root, files, internal, problem)
-  return { problems, skills: count, links, files: files.length }
+  const list = files(root)
+  const links = checkLinks(root, list, problem)
+  checkLeaks(root, list, internal, problem)
+  return { problems, skills: count, links, files: list.length }
 }
 
 if (import.meta.main) {
