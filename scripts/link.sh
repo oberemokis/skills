@@ -136,9 +136,13 @@ if [ "$branch" != main ]; then
   warn "клон на ветке $branch, а не на main: агенты увидят скиллы этой ветки"
 fi
 
-if [ "$(git -C "$REPO" config core.hooksPath || true)" != .githooks ]; then
+# Чужой core.hooksPath, например глобальную папку хуков, не перебиваем: её хуки выключились бы в клоне целиком.
+hooks=$(git -C "$REPO" config --path core.hooksPath || true)
+if [ -z "$hooks" ]; then
   git -C "$REPO" config core.hooksPath .githooks
   say "pre-push хук включён: core.hooksPath .githooks"
+elif [ "$hooks" != .githooks ] && ! grep -qs '\.githooks/pre-push' "$hooks/pre-push"; then
+  warn "core.hooksPath уже задан ($hooks), pre-push хук не включён: вызови .githooks/pre-push клона из $hooks/pre-push"
 fi
 
 for dir in "$REPO"/skills/*/; do
