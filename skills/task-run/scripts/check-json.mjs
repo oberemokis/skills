@@ -119,4 +119,5 @@ function main() {
   console.log('ok')
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main()
+// import.meta.main, а не сравнение argv[1] с путём модуля: скилл стоит ссылкой на клон, и через неё пути расходятся.
+if (import.meta.main) main()

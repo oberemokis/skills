@@ -5,7 +5,6 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 export function normalizeRemote(url) {
   let value = url.trim()
@@ -84,4 +83,5 @@ function main() {
   process.exit(status === 'broken' ? 4 : 3)
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main()
+// import.meta.main, а не сравнение argv[1] с путём модуля: скилл стоит ссылкой на клон, и через неё пути расходятся.
+if (import.meta.main) main()

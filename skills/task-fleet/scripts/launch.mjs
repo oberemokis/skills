@@ -19,7 +19,6 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
-import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 const CLAUDE = /(^|\/)claude$/
@@ -230,7 +229,8 @@ async function main() {
   })
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// import.meta.main, а не сравнение argv[1] с путём модуля: скилл стоит ссылкой на клон, и через неё пути расходятся.
+if (import.meta.main) {
   main().catch((error) => {
     console.error(error.stderr?.toString().trim() || error.message)
     process.exit(1)

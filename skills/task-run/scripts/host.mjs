@@ -3,7 +3,6 @@
 // кто держит терминал. Переменным окружения верить нельзя, HERDR_* и HC_* наследуются в обе стороны.
 // Вывод: hc | none | unknown (ps не ответил), код выхода 0 | 1 | 2.
 import { execFileSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 
 // Держатель терминала hc, `…/herdr-core hold --socket …`: путь до него бывает с пробелом,
 // поэтому ищется подстрока во всей командной строке, а не первое слово.
@@ -43,4 +42,5 @@ function main() {
   process.exit(host === 'hc' ? 0 : host === 'none' ? 1 : 2)
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main()
+// import.meta.main, а не сравнение argv[1] с путём модуля: скилл стоит ссылкой на клон, и через неё пути расходятся.
+if (import.meta.main) main()

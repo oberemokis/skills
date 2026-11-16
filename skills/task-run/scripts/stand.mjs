@@ -10,7 +10,6 @@
 import { spawn } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { constants } from 'node:os'
-import { fileURLToPath } from 'node:url'
 
 export const ownerFile = (port) => `/tmp/task-run-port-${port}.owner`
 
@@ -31,4 +30,5 @@ function main() {
   child.on('exit', (code, signal) => process.exit(code ?? 128 + (constants.signals[signal] ?? 0)))
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main()
+// import.meta.main, а не сравнение argv[1] с путём модуля: скилл стоит ссылкой на клон, и через неё пути расходятся.
+if (import.meta.main) main()
