@@ -26,10 +26,20 @@ export const SECTIONS = [
   ['Как проверить', 'команды, которыми принимающий убедится, что состояние такое, как описано'],
 ]
 
+// Список `git rev-parse --local-env-vars`. Git-хуки выставляют их вызывающему процессу, и тогда -C не спасает:
+// команда идёт в репозиторий из GIT_DIR, а не в папку передачи.
+export const GIT_LOCAL_ENV = [
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_CONFIG', 'GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_COUNT', 'GIT_OBJECT_DIRECTORY',
+  'GIT_DIR', 'GIT_WORK_TREE', 'GIT_IMPLICIT_WORK_TREE', 'GIT_GRAFT_FILE', 'GIT_INDEX_FILE', 'GIT_NO_REPLACE_OBJECTS',
+  'GIT_REPLACE_REF_BASE', 'GIT_PREFIX', 'GIT_SHALLOW_FILE', 'GIT_COMMON_DIR',
+]
+
+const gitEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !GIT_LOCAL_ENV.includes(key)))
+
 function git(cwd, args) {
   try {
     // trimEnd, а не trim: строка porcelain начинается с пробела, если файл не в индексе
-    return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trimEnd()
+    return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', env: gitEnv, stdio: ['ignore', 'pipe', 'ignore'] }).trimEnd()
   } catch {
     return null
   }

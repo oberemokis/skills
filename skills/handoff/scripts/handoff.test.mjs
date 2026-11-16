@@ -5,9 +5,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 
-import { DIR, FILE, checkHandoff, close, formatStatus, hookContext, prepare, readStatus } from './handoff.mjs'
+import { DIR, FILE, GIT_LOCAL_ENV, checkHandoff, close, formatStatus, hookContext, prepare, readStatus } from './handoff.mjs'
 
 const script = join(import.meta.dirname, 'handoff.mjs')
+
+// pre-push хук запускает тесты с GIT_DIR клона. С ним `git -C <tmp> init` переинициализирует сам клон,
+// а commit пишет в его индекс. Чистим окружение до первого вызова git, дочерние процессы его наследуют.
+const hookEnv = Object.fromEntries(GIT_LOCAL_ENV.filter((key) => key in process.env).map((key) => [key, process.env[key]]))
+for (const key of GIT_LOCAL_ENV) delete process.env[key]
 
 function git(cwd, ...args) {
   return execFileSync('git', ['-C', cwd, '-c', 'user.name=test', '-c', 'user.email=test@example.org', ...args], {
@@ -185,6 +190,22 @@ test('хук через CLI: JSON события в stdin, контекст Sess
 test('битый JSON в stdin хука не роняет старт сессии', () => {
   const result = spawnSync(process.execPath, [script, 'hook'], { input: '{ не json', encoding: 'utf8', cwd: tmpdir() })
   assert.equal(result.status, 0)
+})
+
+test('GIT_DIR чужого репозитория не уводит скрипт из папки передачи', () => {
+  const root = repo()
+  const other = repo()
+  prepare(root, { agent: 'codex' })
+  fill(root)
+  commit(root, 'a.ts', 'после передачи')
+
+  // так скрипт запускается из git-хука: окружение указывает на другой репозиторий
+  const env = { ...process.env, ...hookEnv, GIT_DIR: join(other, '.git') }
+  const result = spawnSync(process.execPath, [script, 'status', '--dir', root], { encoding: 'utf8', env })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /после передачи/)
+  assert.equal(git(other, 'log', '--format=%s'), 'начало')
 })
 
 test('коды выхода CLI: нет передачи 3, не заполнена 1, заполнена 0', () => {
