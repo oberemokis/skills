@@ -71,6 +71,7 @@ docs/                     как устроено и как писать
 - тесты: хаб `test` и под ним `tdd`, `unit-tests`, `integration-tests`, `e2e-tests`, `test-review`, `coverage`, `bug-hunting`
 - стек: `effect`, `golang`, `nitro`, `nuxt`, `pinia`, `playwright`, `pnpm`, `tailwind`, `turbo`, `typescript`, `vite`, `vitest`, `vue`, `vueuse`
 - git: `commit-rules`, `worktree`
+- передача работы между агентами и сессиями: `handoff`
 - только Claude Code в Herdr: `task-run`, `task-fleet`
 
 ## Документация
