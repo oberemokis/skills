@@ -2,6 +2,9 @@
 name: task-run
 description: "Маршрут одной задачи из трекера от взятия в работу до закрытия: план с тестовыми случаями на подтверждение, реализация в worktree с диффом в панели Review Herdr (вне Herdr в gitone) и стендом во вкладке браузера с начала работы, автотесты, ревью агентами, ручная проверка перед коммитом, доставка и закрытие. Состояние задачи в JSON вне репозитория, данные проекта в его папке. Вызывается руками как /task-run ID или из task-fleet."
 disable-model-invocation: true
+compatibility: "Только Claude Code. Панель Review и fleet работают в Herdr."
+metadata:
+  internal: true
 ---
 
 # Task run

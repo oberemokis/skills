@@ -1,0 +1,4 @@
+# Codex: скилл вызывается только явно ($humanizer), модель сама его не выбирает.
+# Пара к disable-model-invocation в SKILL.md, scripts/check.sh следит, чтобы они не разошлись.
+policy:
+  allow_implicit_invocation: false
