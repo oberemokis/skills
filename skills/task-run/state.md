@@ -4,7 +4,7 @@
 
 ## Поля
 
-- `schema`: всегда `task-run/task@1`. `plugin`: версия и папка плагина, на котором начата задача.
+- `schema`: всегда `task-run/task@1`. `plugin`: версия и папка плагина, на котором начата задача; только у задач до отказа от плагина, у новых поля нет.
 - `project`, `task`, `title`, `type` (`feature` или `bug`), `level`, `levelReason`.
 - `base`, `delivery` (`mr` или `push`), `branch`, `worktree` (абсолютный путь), `fleet`.
 - `session`: `agent` это адрес терминала hc (`$HC_TERMINAL_ID`), только если `scripts/host.mjs` ответил `hc`, иначе `null`; `claudeSession` это `$CLAUDE_CODE_SESSION_ID`; `workspace` и `pane` всегда `null`, пространство и вкладка лежат в метках терминала.

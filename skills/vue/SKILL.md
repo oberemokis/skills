@@ -5,7 +5,7 @@ description: "Правила и ловушки Vue 3.5 с Composition API и scr
 
 # Vue
 
-> Точка входа: [skills/core](../../core/SKILL.md). Если core ещё не прочитан, прочитать его до этого скилла.
+> Точка входа: [core](../core/SKILL.md). Если core ещё не прочитан, прочитать его до этого скилла.
 
 Версия: Vue 3.5.41, актуальная на момент написания. Только Composition API и `<script setup lang="ts">`. Options API, JSX и render-функции здесь не рассматриваются: писать новый код на них не надо.
 

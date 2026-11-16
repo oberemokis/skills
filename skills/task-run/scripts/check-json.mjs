@@ -25,7 +25,7 @@ function matchesType(value, type) {
   return type === actual || (type === 'number' && actual === 'integer')
 }
 
-// Подмножество JSON Schema, которого хватает схемам task-run: зависимость от ajv в плагине не нужна.
+// Подмножество JSON Schema, которого хватает схемам task-run: зависимость от ajv в скилле не нужна.
 export function validate(schema, value, path = '$') {
   const errors = []
 

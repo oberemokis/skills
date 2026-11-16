@@ -11,12 +11,15 @@ import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 
+import { isClaude, readProcs } from './launch.mjs'
+
 const LABEL = 'task-fleet=1'
 
 const hc = (args) => JSON.parse(execFileSync('hc', args, { encoding: 'utf8' }))
 
 function snapshot() {
   const out = {}
+  const procs = readProcs()
   for (const { address } of hc(['ls', '--label', LABEL, '--json']).terminals ?? []) {
     const t = hc(['get', address, '--json'])
     out[address] = {
@@ -25,8 +28,9 @@ function snapshot() {
       state: t.state,
       status: t.status?.state ?? null,
       turn: t.turn ?? 0,
-      // Claude идёт под обёрткой оболочки, на переднем плане всегда она, поэтому агент берётся из статуса.
       app: t.status?.app ?? null,
+      // Есть ли Claude в терминале. По app не понять: на вопросе о доверии папке статуса ещё нет.
+      claude: isClaude(t, procs),
     }
   }
   return out

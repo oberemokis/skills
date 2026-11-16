@@ -1,12 +1,12 @@
 ---
 name: task-run
-description: "Маршрут одной задачи из трекера от взятия в работу до закрытия: план с тестовыми случаями на подтверждение, реализация в worktree с диффом в панели Review Herdr (вне Herdr в gitone) и стендом во вкладке браузера с начала работы, автотесты, ревью агентами, ручная проверка перед коммитом, доставка и закрытие. Состояние задачи в JSON вне репозитория, данные проекта в его папке. Вызывается руками как /oberemokis-skills:task-run ID или из task-fleet."
+description: "Маршрут одной задачи из трекера от взятия в работу до закрытия: план с тестовыми случаями на подтверждение, реализация в worktree с диффом в панели Review Herdr (вне Herdr в gitone) и стендом во вкладке браузера с начала работы, автотесты, ревью агентами, ручная проверка перед коммитом, доставка и закрытие. Состояние задачи в JSON вне репозитория, данные проекта в его папке. Вызывается руками как /task-run ID или из task-fleet."
 disable-model-invocation: true
 ---
 
 # Task run
 
-> Точка входа: [skills/core](../../core/SKILL.md). Если core ещё не прочитан, прочитать его до этого скилла.
+> Точка входа: [core](../core/SKILL.md). Если core ещё не прочитан, прочитать его до этого скилла.
 
 Версия: Herdr (ядро hc 0.1.20, приложение 0.1.15, раскладка workbench из herdr-app) для работы под `task-fleet`, gitone 0.16.1 вне Herdr, расширение Claude in Chrome для вкладки стенда, остальное от версий инструментов не зависит. Скилл ведёт одну задачу. Что делать на этапе, лежит в `stages/`, как это делается в конкретном проекте, лежит в папке проекта: [project.md](project.md).
 
@@ -14,7 +14,7 @@ disable-model-invocation: true
 
 ## Когда применять
 
-- пользователь вызвал `/oberemokis-skills:task-run <ID>`, или `task-fleet` прислал такой промпт в сессию задачи
+- пользователь вызвал `/task-run <ID>`, или `task-fleet` прислал такой промпт в сессию задачи
 - нужно продолжить задачу, у которой уже есть файл состояния
 
 ## Когда НЕ применять
@@ -148,7 +148,7 @@ MR и push своей ветки задачи отдельного подтве�
 
 ### Остановка и продолжение
 
-Пользователь просит остановиться: `stage.status = stopped`, «приостановил», итог одной строкой. `task-fleet` такую задачу сам не поднимает. Продолжить можно тем же вызовом `/oberemokis-skills:task-run <ID>`.
+Пользователь просит остановиться: `stage.status = stopped`, «приостановил», итог одной строкой. `task-fleet` такую задачу сам не поднимает. Продолжить можно тем же вызовом `/task-run <ID>`.
 
 ### Субагенты
 
@@ -179,4 +179,4 @@ MR и push своей ветки задачи отдельного подтве�
 
 - `stages/`: этапы; [state.md](state.md): файл задачи и продолжение; [stand.md](stand.md): стенд, порт и вкладка; [project.md](project.md): папка проекта, глаголы, опросник
 - `schemas/` и `scripts/`: схемы файлов, `check-json.mjs`, `resolve-project.mjs`, `host.mjs`, тесты на `node --test`
-- [task-fleet](../task-fleet/SKILL.md): параллельные сессии; [review](../../review/SKILL.md), [audit](../../audit/SKILL.md), [test](../../test/SKILL.md), [bug-hunting](../../test/bug-hunting/SKILL.md), [commit](../../git/commit/SKILL.md), [worktree](../../git/worktree/SKILL.md)
+- [task-fleet](../task-fleet/SKILL.md): параллельные сессии; [review](../review/SKILL.md), [audit](../audit/SKILL.md), [test](../test/SKILL.md), [bug-hunting](../bug-hunting/SKILL.md), [commit](../commit-rules/SKILL.md), [worktree](../worktree/SKILL.md)

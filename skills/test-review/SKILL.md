@@ -5,7 +5,7 @@ description: "Как ревьюить тесты, свои и чужие: чек
 
 # Test review
 
-> Точка входа: [skills/core](../../core/SKILL.md). Общие правила тестов: [skills/test](../SKILL.md).
+> Точка входа: [core](../core/SKILL.md). Общие правила тестов: [test](../test/SKILL.md).
 
 ## Чеклист
 

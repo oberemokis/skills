@@ -15,7 +15,7 @@
 - `tracker` и `codeHost`: `kind`, `check` (как проверить подключение) и любые данные проекта, на которые ссылаются глаголы: статусы, поля, люди, ID проекта, шаблон MR.
 - `worktree`: `dir` (папка worktree в корне, по умолчанию `.worktrees`), `localFiles` (что скопировать из основной папки, если нет), `install` (команды установки с папкой запуска), `exclude` (что дописать в `.git/info/exclude`).
 - `checks`: области кода, у каждой `paths` (glob) и `run` (команды по одной), `background` для долгих.
-- `review`: области ревью, `with` (`review` плагина или встроенный `code-review`) и `root` для `code-review`.
+- `review`: области ревью, `with` (скилл `review` или встроенный `code-review`) и `root` для `code-review`.
 - `stand`: порт, папка и команда dev-сервера, `null`, если стенда нет.
 
 ## rules.md

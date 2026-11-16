@@ -5,7 +5,7 @@ description: "Tailwind 4 с конфигурацией в CSS: токены в @
 
 # Tailwind
 
-> Точка входа: [skills/core](../../core/SKILL.md). Если core ещё не прочитан, прочитать его до этого скилла.
+> Точка входа: [core](../core/SKILL.md). Если core ещё не прочитан, прочитать его до этого скилла.
 
 Версия: `tailwindcss@4.3.3`, актуальная на момент написания, через плагин `@tailwindcss/vite`, подключённый в `nuxt.config.ts`. Файла `tailwind.config.js` нет и не должно быть: вся конфигурация живёт в CSS, точка входа `app/assets/css/main.css`.
 

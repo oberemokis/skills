@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+// Стенд задачи: записывает владельца порта и запускает сервер стенда. Звать фоном под локом порта,
+// из `<worktree>/<stand.cwd>`:
+//
+//   flock -n -E 75 /tmp/task-run-port-<порт>.lock node stand.mjs <порт> <ID> <worktree> "<stand.start>"
+//
+// Лок держит flock, пока жив этот процесс, а он живёт, пока жив сервер: упал сервер, упал и лок.
+// Команда стенда идёт через оболочку здесь, а не в команде агента: `sh -c` хук lean-ctx не пропускает.
+// Код выхода сервера возвращается как есть; 2: ошибка вызова.
+import { spawn } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { constants } from 'node:os'
+import { fileURLToPath } from 'node:url'
+
+export const ownerFile = (port) => `/tmp/task-run-port-${port}.owner`
+
+// Владелец пишется до старта сервера: занятый лок другая задача объясняет по этому файлу.
+export function serve({ ownerPath, owner, command, cwd }) {
+  writeFileSync(ownerPath, `${owner}\n`)
+  return spawn(command, { shell: true, stdio: 'inherit', cwd })
+}
+
+function main() {
+  const [port, id, worktree, command] = process.argv.slice(2)
+  if (!/^\d+$/.test(port ?? '') || !id || !worktree || !command) {
+    console.error('stand.mjs <порт> <ID> <worktree> "<stand.start>"')
+    process.exit(2)
+  }
+  const child = serve({ ownerPath: ownerFile(port), owner: `${id} ${worktree}`, command, cwd: process.cwd() })
+  for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, () => child.kill(signal))
+  child.on('exit', (code, signal) => process.exit(code ?? 128 + (constants.signals[signal] ?? 0)))
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) main()
