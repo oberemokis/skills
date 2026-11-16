@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Главный барьер перед публичным репозиторием: CI видит утечку уже после пуша, а хук до него.
+# Включает scripts/link.sh (git config core.hooksPath .githooks).
+exec "$(git rev-parse --show-toplevel)/scripts/check.sh"
