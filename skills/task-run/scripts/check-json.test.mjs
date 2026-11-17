@@ -67,6 +67,14 @@ function validProject() {
   }
 }
 
+const PRINT = 'a'.repeat(64)
+
+function withCase(result) {
+  const task = validTask()
+  task.context.cases[0].result = result
+  return task
+}
+
 const cases = [
   ['полный файл задачи', validTask, []],
   ['полный файл проекта', validProject, []],
@@ -117,6 +125,39 @@ const cases = [
   ['неизвестный вид агента', () => ({ ...validTask(), session: { ...validTask().session, agentKind: 'cursor' } }), ['$.session.agentKind: допустимо']],
   ['агент проекта по умолчанию', () => ({ ...validProject(), agent: 'codex' }), []],
   ['неизвестный агент проекта', () => ({ ...validProject(), agent: 'cursor' }), ['$.agent: допустимо']],
+  [
+    'результат случая привязан к отпечатку диффа',
+    () => withCase({ status: 'pass', diff: PRINT, at: '2026-11-17T12:00:00+03:00', check: 'pnpm vitest run cameras' }),
+    [],
+  ],
+  [
+    'случай без прогона без причины',
+    () => withCase({ status: 'not_run', diff: PRINT, at: 'x', check: 'pnpm vitest run cameras' }),
+    ['$.context.cases[0].result: нет поля note'],
+  ],
+  [
+    'неприменимый случай с причиной',
+    () => withCase({ status: 'not_applicable', diff: PRINT, at: 'x', check: 'нет', note: 'критерий снят продуктом' }),
+    [],
+  ],
+  ['результат без отпечатка', () => withCase({ status: 'pass', diff: 'abc', at: 'x', check: 'y' }), ['$.context.cases[0].result.diff: не подходит']],
+  ['отпечаток прогона всех проверок', () => ({ ...validTask(), verifiedDiff: PRINT }), []],
+  [
+    'допущение с проверкой и ценой ошибки',
+    () => ({
+      ...validTask(),
+      context: {
+        ...validTask().context,
+        assumptions: [{ claim: 'статус камеры приходит в списке', check: 'ответ /api/cameras', ifFalse: 'нужен второй запрос', status: 'unchecked' }],
+      },
+    }),
+    [],
+  ],
+  [
+    'допущение без цены ошибки',
+    () => ({ ...validTask(), context: { ...validTask().context, assumptions: [{ claim: 'x', check: 'y', status: 'confirmed' }] } }),
+    ['$.context.assumptions[0]: нет поля ifFalse'],
+  ],
   ['лишнее поле в задаче', () => ({ ...validTask(), mr: 12 }), ['$: лишнее поле mr']],
   ['пустой список критериев', () => ({ ...validTask(), context: { ...validTask().context, criteria: [] } }), ['$.context.criteria: нужно не меньше 1']],
   [
