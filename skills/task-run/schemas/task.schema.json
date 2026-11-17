@@ -100,6 +100,66 @@
             }
           }
         },
+        "map": {
+          "type": "object",
+          "required": ["builtAt", "at", "files", "consumers", "tests", "related"],
+          "additionalProperties": false,
+          "properties": {
+            "builtAt": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+            "at": { "type": "string", "minLength": 1 },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "why"],
+                "additionalProperties": false,
+                "properties": {
+                  "path": { "type": "string", "minLength": 1 },
+                  "line": { "type": "integer", "minimum": 1 },
+                  "why": { "type": "string", "minLength": 1 }
+                }
+              }
+            },
+            "consumers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "uses"],
+                "additionalProperties": false,
+                "properties": {
+                  "path": { "type": "string", "minLength": 1 },
+                  "line": { "type": "integer", "minimum": 1 },
+                  "uses": { "type": "string", "minLength": 1 }
+                }
+              }
+            },
+            "tests": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["path", "seam"],
+                "additionalProperties": false,
+                "properties": {
+                  "path": { "type": "string", "minLength": 1 },
+                  "seam": { "type": "string", "minLength": 1 }
+                }
+              }
+            },
+            "related": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["kind", "ref", "note"],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": { "enum": ["branch", "commit", "mr", "task", "doc"] },
+                  "ref": { "type": "string", "minLength": 1 },
+                  "note": { "type": "string", "minLength": 1 }
+                }
+              }
+            }
+          }
+        },
         "assumptions": {
           "type": "array",
           "items": {

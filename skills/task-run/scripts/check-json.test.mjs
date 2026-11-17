@@ -75,6 +75,22 @@ function withCase(result) {
   return task
 }
 
+const MAP = {
+  builtAt: 'abc1234',
+  at: '2026-11-17T12:00:00+03:00',
+  files: [{ path: 'web/components/CameraList.vue', line: 42, why: 'фильтр по статусу, критерий 1' }],
+  consumers: [{ path: 'web/pages/cameras.vue', line: 12, uses: 'событие update:filter' }],
+  tests: [{ path: 'web/components/CameraList.test.ts', seam: 'монтирование компонента' }],
+  related: [{ kind: 'branch', ref: 'origin/feature/PROJ-9', note: 'тоже правит CameraList.vue' }],
+}
+
+function withMap(map) {
+  const task = validTask()
+  // undefined в поле значит «поля нет», как после JSON.stringify.
+  task.context.map = JSON.parse(JSON.stringify(map))
+  return task
+}
+
 const cases = [
   ['полный файл задачи', validTask, []],
   ['полный файл проекта', validProject, []],
@@ -158,6 +174,14 @@ const cases = [
     () => ({ ...validTask(), context: { ...validTask().context, assumptions: [{ claim: 'x', check: 'y', status: 'confirmed' }] } }),
     ['$.context.assumptions[0]: нет поля ifFalse'],
   ],
+  ['карта разведки со ссылками', () => withMap(MAP), []],
+  ['карта без SHA, где читали', () => withMap({ ...MAP, builtAt: undefined }), ['$.context.map: нет поля builtAt']],
+  [
+    'потребитель без того, что он использует',
+    () => withMap({ ...MAP, consumers: [{ path: 'web/pages/cameras.vue' }] }),
+    ['$.context.map.consumers[0]: нет поля uses'],
+  ],
+  ['связанная работа неизвестного вида', () => withMap({ ...MAP, related: [{ kind: 'slack', ref: 'x', note: 'y' }] }), ['$.context.map.related[0].kind: допустимо']],
   ['лишнее поле в задаче', () => ({ ...validTask(), mr: 12 }), ['$: лишнее поле mr']],
   ['пустой список критериев', () => ({ ...validTask(), context: { ...validTask().context, criteria: [] } }), ['$.context.criteria: нужно не меньше 1']],
   [

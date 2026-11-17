@@ -182,6 +182,6 @@ MR и push своей ветки задачи отдельного подтве�
 
 ## Ссылки
 
-- `stages/`: этапы; [state.md](state.md): файл задачи и продолжение; [stand.md](stand.md): стенд, порт и вкладка; [project.md](project.md): папка проекта, глаголы, опросник
+- `stages/`: этапы; [state.md](state.md): файл задачи и продолжение; [recon.md](recon.md): разведка кода и карта задачи; [stand.md](stand.md): стенд, порт и вкладка; [project.md](project.md): папка проекта, глаголы, опросник
 - `schemas/` и `scripts/`: схемы файлов, `check-json.mjs`, `resolve-project.mjs`, `host.mjs`, тесты на `node --test`
 - [task-fleet](../task-fleet/SKILL.md): параллельные сессии; [handoff](../handoff/SKILL.md): передача задачи другому агенту; [review](../review/SKILL.md), [audit](../audit/SKILL.md), [test](../test/SKILL.md), [bug-hunting](../bug-hunting/SKILL.md), [commit](../commit-rules/SKILL.md), [worktree](../worktree/SKILL.md)
