@@ -15,6 +15,8 @@ Worktree создал оркестратор, сессия уже в нём. П�
 
 Корень проекта это `root` из ответа `resolve-project.mjs`, папка worktree `<root>/<worktree.dir>/<ветка с - вместо />`.
 
+Войти в worktree посреди сессии умеет только Claude Code (`EnterWorktree`, шаг 9). Агент без него: этап `blocked` до шага 1 с причиной «без `--fleet` задача ведётся только в Claude Code, запусти её через `/task-fleet <ID> --agent <вид>`».
+
 1. `git worktree list`: worktree ветки уже есть, тогда только шаг 6 и вход в него.
 2. `git check-ignore -q <dir>/<имя>` в корне: проверяется путь внутри папки, правило на ещё не созданную папку не срабатывает. Не игнорируется: допиши `/<dir>/` в `.git/info/exclude` и скажи об этом одной строкой. `.gitignore` не трогай, он общий.
 3. `flock <общий .git>/task-run-fetch.lock git fetch origin`: несколько worktree одного репозитория иначе ловят «cannot lock ref».
