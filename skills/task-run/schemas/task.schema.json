@@ -32,7 +32,9 @@
         "agent": { "type": ["string", "null"] },
         "workspace": { "type": ["string", "null"] },
         "pane": { "type": ["string", "null"] },
-        "claudeSession": { "type": ["string", "null"] }
+        "claudeSession": { "type": ["string", "null"] },
+        "agentKind": { "enum": ["claude", "codex", "opencode"] },
+        "agentSession": { "type": ["string", "null"] }
       }
     },
     "stage": {

@@ -109,6 +109,14 @@ const cases = [
     }),
     [],
   ],
+  [
+    'сессия другого агента: вид и ID сессии рядом со старыми полями',
+    () => ({ ...validTask(), session: { ...validTask().session, claudeSession: null, agentKind: 'codex', agentSession: '019a1e67-ec48-7000-8000-000000000001' } }),
+    [],
+  ],
+  ['неизвестный вид агента', () => ({ ...validTask(), session: { ...validTask().session, agentKind: 'cursor' } }), ['$.session.agentKind: допустимо']],
+  ['агент проекта по умолчанию', () => ({ ...validProject(), agent: 'codex' }), []],
+  ['неизвестный агент проекта', () => ({ ...validProject(), agent: 'cursor' }), ['$.agent: допустимо']],
   ['лишнее поле в задаче', () => ({ ...validTask(), mr: 12 }), ['$: лишнее поле mr']],
   ['пустой список критериев', () => ({ ...validTask(), context: { ...validTask().context, criteria: [] } }), ['$.context.criteria: нужно не меньше 1']],
   [

@@ -1,25 +1,40 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { asksTrust, liveSessions, options, runArgs } from './launch.mjs'
+import { agentProcess, asksTrust, liveSessions, options, runArgs, stopAgent, WRAP } from './launch.mjs'
 
 const UUID = '0b6f3c1e-1d2a-4c3b-9e8f-7a6b5c4d3e2f'
 const DIRS = ['.worktrees']
 
-// Терминал в форме `hc get --json`: только поля, которые читает подсчёт. Оболочка впереди с pid 100.
+// Терминал в форме `hc get --json`: только поля, которые читает подсчёт. Корень терминала, обёртка, с pid 100.
 const terminal = ({ app = null, argv0 = '/bin/zsh', cwd = '/Users/me/project', labels = {} }) => ({
+  pid: 100,
   labels,
   status: app ? { app, state: 'working' } : null,
   foreground: { argv: [argv0], cwd, pid: 100 },
 })
 
-// Claude дочерним процессом в группе оболочки, как под обёрткой launch.mjs (снято с живого запуска).
-const WRAPPED = [{ pgid: 100, program: '/bin/zsh' }, { pgid: 100, program: 'claude' }]
+const proc = (pid, ppid, args, stat = 'S+') => ({ pid, ppid, stat, argv0: args.split(' ')[0], args })
+// Claude дочерним процессом обёртки, как под launch.mjs (снято с живого запуска: comm и argv[0] равны claude).
+const WRAPPED = [proc(100, 1, `/bin/zsh -lc ${WRAP} claude`), proc(101, 100, 'claude --session-id x /task-run PROJ-1')]
 
-test('место занимает сессия fleet на вопросе о доверии: статуса нет, Claude только в группе оболочки', () => {
+test('место занимает сессия fleet на вопросе о доверии: статуса нет, Claude только в дереве терминала', () => {
   const t = terminal({ labels: { 'task-fleet': '1' } })
   assert.equal(liveSessions([t], DIRS, WRAPPED).length, 1)
-  assert.equal(liveSessions([t], DIRS, [{ pgid: 100, program: '/bin/zsh' }, { pgid: 200, program: 'claude' }]).length, 0)
+  assert.equal(liveSessions([t], DIRS, [proc(100, 1, '/bin/zsh'), proc(201, 200, 'claude')]).length, 0)
+})
+
+test('Claude, остановленный по Ctrl+Z, ушёл из группы переднего плана, но сессия жива и видна остановленной', () => {
+  const procs = [proc(100, 1, '/bin/zsh'), proc(101, 100, 'claude --resume x', 'T')]
+  const t = terminal({ labels: { 'task-fleet': '1' } })
+  assert.equal(liveSessions([t], DIRS, procs).length, 1)
+  assert.deepEqual(agentProcess(t, procs), { pid: 101, kind: 'claude', stopped: true })
+})
+
+test('агент находится в глубине дерева, а его фоновый сервер агентом не считается', () => {
+  const deep = [proc(100, 1, '/bin/zsh'), proc(110, 100, '/bin/sh -c x'), proc(111, 110, '/opt/bin/claude')]
+  assert.equal(agentProcess(terminal({}), deep)?.pid, 111)
+  assert.equal(agentProcess(terminal({}), [proc(100, 1, '/bin/zsh'), proc(101, 100, 'claude mcp serve')]), null)
 })
 
 test('вопрос о доверии узнаётся по экрану Claude', () => {
@@ -42,44 +57,47 @@ for (const [name, t, expected] of cases) {
   })
 }
 
-test('промпт после -- уходит claude последним аргументом, после --session-id', () => {
-  const opts = options(['--name', 'feature-proj-1', '--cwd', '/p/.worktrees/feature-PROJ-1', '--task', 'PROJ-1', '--session', UUID,
-    '--', '/task-run PROJ-1 --fleet --base dev'])
-  const args = runArgs({ ...opts, ownSpace: 'main', parent: 't7', shell: '/bin/zsh' })
+const BASE = ['--name', 'feature-proj-1', '--cwd', '/p/.worktrees/feature-PROJ-1', '--task', 'PROJ-1']
+const run = (argv, extra = {}) => runArgs({ ...options(argv), ownSpace: 'main', parent: 't7', shell: '/bin/zsh', ...extra })
+
+test('промпт task-run собирает скрипт из --task-args и ставит последним, после --session-id', () => {
+  const args = run([...BASE, '--session', UUID, '--task-args', 'PROJ-1 --fleet --base dev'])
   assert.deepEqual(args.slice(args.indexOf('--')), [
-    '--', '/bin/zsh', '-lc', 'claude "$@"; exec "$SHELL" -l', 'claude', '--session-id', UUID, '/task-run PROJ-1 --fleet --base dev',
+    '--', '/bin/zsh', '-lc', WRAP, 'claude', '--session-id', UUID, '/task-run PROJ-1 --fleet --base dev',
   ])
 })
 
 test('--resume поднимает ту же сессию вместо новой', () => {
-  const opts = options(['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID, '--resume', '--', 'продолжай'])
-  const args = runArgs({ ...opts, ownSpace: null, parent: 't7', shell: '/bin/zsh' })
+  const args = run(['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID, '--resume', '--', 'продолжай'])
   assert.deepEqual(args.slice(-3), ['--resume', UUID, 'продолжай'])
   assert.ok(!args.includes('--session-id'))
 })
 
-test('флаги claude после -- не съедаются разбором скрипта', () => {
+test('аргументы агента после -- не съедаются разбором скрипта и идут до промпта', () => {
   const opts = options(['--name', 'read-x', '--cwd', '/p', '--task', 'read-x', '--session', UUID,
     '--', '--permission-mode', 'plan', '--disallowedTools=Edit,Write', 'что тут происходит'])
-  assert.deepEqual(opts.claudeArgs, ['--permission-mode', 'plan', '--disallowedTools=Edit,Write', 'что тут происходит'])
+  assert.deepEqual(opts.agentArgs, ['--permission-mode', 'plan', '--disallowedTools=Edit,Write', 'что тут происходит'])
+  const args = runArgs({ ...opts, ownSpace: null, parent: 't7', shell: '/bin/zsh' })
+  assert.deepEqual(args.slice(-4), opts.agentArgs)
 })
 
-test('метки задачи, сессии и пространства; без своего пространства метки дерева нет', () => {
-  const opts = options(['--name', 'feature-proj-1', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID])
+test('метки задачи, агента, запуска и пространства; без своего пространства метки дерева нет', () => {
+  const opts = options([...BASE, '--session', UUID])
   const labels = (args) => args.flatMap((a, i) => (args[i - 1] === '--label' ? [a] : []))
   assert.deepEqual(labels(runArgs({ ...opts, ownSpace: null, parent: 't7', shell: '/bin/zsh' })), [
-    'task-fleet=1', 'task=PROJ-1', `claude-session=${UUID}`,
+    'task-fleet=1', 'task=PROJ-1', 'agent=claude', `agent-session=${UUID}`, `fleet-launch=${opts.launch}`,
     'herdr.space=fleet-feature-proj-1', 'herdr.tab=fleet-feature-proj-1-tab', 'task-fleet.parent=t7',
   ])
   assert.ok(labels(runArgs({ ...opts, ownSpace: 'main', parent: 't7', shell: '/bin/zsh' })).includes('task-fleet.space=main'))
 })
 
-test('без --session скрипт сам выдаёт новый UUID, а --resume без него отклоняется', () => {
-  const base = ['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1']
-  const first = options(base).session
-  assert.match(first, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
-  assert.notEqual(options(base).session, first)
-  assert.throws(() => options([...base, '--resume']), /--resume/)
+test('без --session скрипт сам выдаёт новый UUID, метка запуска своя у каждого вызова, --resume без сессии отклоняется', () => {
+  const first = options(BASE)
+  const second = options(BASE)
+  assert.match(first.session, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  assert.notEqual(second.session, first.session)
+  assert.notEqual(second.launch, first.launch)
+  assert.throws(() => options([...BASE, '--resume']), /--resume/)
 })
 
 test('плохие аргументы отклоняются до запуска', () => {
@@ -88,4 +106,16 @@ test('плохие аргументы отклоняются до запуска
   assert.throws(() => options(['--name', 'n', '--cwd', 'relative', '--task', 'PROJ-1', '--session', UUID]), /--cwd/)
   assert.throws(() => options(['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID.toUpperCase()]), /--session/)
   assert.throws(() => options(['--name', 'n', ...base, '--limit', '0']), /--limit/)
+  assert.throws(() => options(['--name', 'n', ...base, '--budget', '0']), /--budget/)
+  assert.throws(() => options(['--name', 'n', ...base, '--agent', 'cursor']), /--agent/)
+  assert.throws(() => options(['--name', 'n', ...base, '--task-args', ' ']), /--task-args/)
+})
+
+test('агент гасится TERM и затем CONT, уже вышедший процесс не ошибка', () => {
+  const sent = []
+  stopAgent({ pid: 101 }, (pid, signal) => sent.push([pid, signal]))
+  assert.deepEqual(sent, [[101, 'SIGTERM'], [101, 'SIGCONT']])
+  const gone = Object.assign(new Error('no such process'), { code: 'ESRCH' })
+  assert.doesNotThrow(() => stopAgent({ pid: 101 }, () => { throw gone }))
+  assert.throws(() => stopAgent({ pid: 1 }, () => { throw Object.assign(new Error('nope'), { code: 'EPERM' }) }), /nope/)
 })

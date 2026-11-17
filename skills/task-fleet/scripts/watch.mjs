@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Ждёт перемены у сессий задач fleet, терминалов hc с меткой task-fleet=1: статус агента, ход,
-// агент в терминале, конец терминала. Печатает JSON изменившихся и выходит.
+// агент в терминале и его остановка, конец терминала. Печатает JSON изменившихся и выходит.
 // Поток `hc events` шумный (заголовки, отметки «просмотрено»), поэтому решает сравнение снимков.
 //
 //   watch.mjs <файл снимка>
@@ -11,32 +11,35 @@ import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 
-import { isClaude, readProcs } from './launch.mjs'
+import { agentProcess, isAgent, readProcs } from './launch.mjs'
 
 const LABEL = 'task-fleet=1'
 
-const hc = (args) => JSON.parse(execFileSync('hc', args, { encoding: 'utf8' }))
+const hcJson = (args) => JSON.parse(execFileSync('hc', args, { encoding: 'utf8' }))
 
-function snapshot() {
+// hc и процессы подменяются в тестах.
+export function snapshot(hc = hcJson, procs = readProcs()) {
   const out = {}
-  const procs = readProcs()
   for (const { address } of hc(['ls', '--label', LABEL, '--json']).terminals ?? []) {
     const t = hc(['get', address, '--json'])
     out[address] = {
       address,
       task: t.labels?.task ?? null,
+      agent: t.labels?.agent ?? null,
       state: t.state,
       status: t.status?.state ?? null,
       turn: t.turn ?? 0,
       app: t.status?.app ?? null,
-      // Есть ли Claude в терминале. По app не понять: на вопросе о доверии папке статуса ещё нет.
-      claude: isClaude(t, procs),
+      // Есть ли агент в терминале. По app не понять: на вопросе о доверии папке статуса ещё нет.
+      alive: isAgent(t, procs),
+      // Агент остановлен (Ctrl+Z): сессия жива, перезапуск не нужен.
+      stopped: agentProcess(t, procs)?.stopped ?? false,
     }
   }
   return out
 }
 
-function changes(before, after) {
+export function changes(before, after) {
   const out = []
   for (const [address, now] of Object.entries(after)) {
     if (JSON.stringify(before[address]) !== JSON.stringify(now)) out.push(now)
@@ -76,4 +79,5 @@ function main() {
   events.on('close', () => done(3, [], null))
 }
 
-main()
+// import.meta.main, а не сравнение argv[1] с путём модуля: скилл стоит ссылкой на клон, и через неё пути расходятся.
+if (import.meta.main) main()
