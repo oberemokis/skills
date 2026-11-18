@@ -165,6 +165,7 @@ MR и push своей ветки задачи отдельного подтве�
 - Панель Review (мод `reviewer` раскладки workbench из herdr-app): база из `branch.<ветка>.base`, без неё из раскладки; ревью уходит агенту Claude того же worktree текстом с `Code review of <worktree>`, а заблокированному агенту не уходит.
 - gitone 0.16.1: без аргументов показывает незакоммиченное вместе с новыми файлами, аргументы уходят в `git diff`; дифф перечитывает сам, когда меняются файлы.
 - Claude in Chrome: вкладку открывает `tabs_create_mcp`, закрывает `tabs_close_mcp`; ID вкладок из другой сессии недействительны.
+- Playwright 1.62: `shots.mjs` берёт `playwright`, `@playwright/test` или `playwright-core` из проекта, своего пакета у скилла нет; браузер свой chromium, без него установленный Chrome.
 
 ## Антипаттерны
 
@@ -183,5 +184,5 @@ MR и push своей ветки задачи отдельного подтве�
 ## Ссылки
 
 - `stages/`: этапы; [state.md](state.md): файл задачи и продолжение; [recon.md](recon.md): разведка кода и карта задачи; [stand.md](stand.md): стенд, порт и вкладка; [project.md](project.md): папка проекта, глаголы, опросник
-- `schemas/` и `scripts/`: схемы файлов, `check-json.mjs`, `resolve-project.mjs`, `host.mjs`, тесты на `node --test`
+- `schemas/` и `scripts/`: схемы файлов, `check-json.mjs`, `resolve-project.mjs`, `host.mjs`, `shots.mjs` (снимки с красной рамкой для визуального ревью), тесты на `node --test`
 - [task-fleet](../task-fleet/SKILL.md): параллельные сессии; [handoff](../handoff/SKILL.md): передача задачи другому агенту; [review](../review/SKILL.md), [audit](../audit/SKILL.md), [test](../test/SKILL.md), [bug-hunting](../bug-hunting/SKILL.md), [commit](../commit-rules/SKILL.md), [worktree](../worktree/SKILL.md)
