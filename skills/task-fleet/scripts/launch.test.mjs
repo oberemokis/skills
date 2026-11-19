@@ -67,6 +67,11 @@ test('промпт task-run собирает скрипт из --task-args и с
   ])
 })
 
+test('задача без оценки открывает оценщик в той же панели с аргументами задачи', () => {
+  const args = run([...BASE, '--estimate-first', '--task-args', 'PROJ-1 --fleet --level L'])
+  assert.equal(args.at(-1), '/task-estimate PROJ-1 --fleet --level L')
+})
+
 test('--resume поднимает ту же сессию вместо новой', () => {
   const args = run(['--name', 'n', '--cwd', '/p', '--task', 'PROJ-1', '--session', UUID, '--resume', '--', 'продолжай'])
   assert.deepEqual(args.slice(-3), ['--resume', UUID, 'продолжай'])

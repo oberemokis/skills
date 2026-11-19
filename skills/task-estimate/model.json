@@ -1,0 +1,6 @@
+{
+  "base": 5,
+  "perExtraFile": 1,
+  "perCase": 3,
+  "thresholds": [15, 30, 60, 120]
+}

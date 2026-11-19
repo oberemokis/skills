@@ -72,7 +72,7 @@ docs/                     как устроено и как писать
 - стек: `effect`, `golang`, `nitro`, `nuxt`, `pinia`, `playwright`, `pnpm`, `tailwind`, `turbo`, `typescript`, `vite`, `vitest`, `vue`, `vueuse`
 - git: `commit-rules`, `worktree`
 - передача работы между агентами и сессиями: `handoff`
-- только Claude Code в Herdr: `task-run`, `task-fleet`
+- только Claude Code в Herdr: `task-run`, `task-fleet`, [task-estimate](./skills/task-estimate/SKILL.md) (оценка времени по плану; [симуляция на истории](./skills/task-estimate/simulation.md))
 
 ## Документация
 

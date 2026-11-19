@@ -42,7 +42,7 @@ export const AGENTS = {
     session: UUID,
     start: (id) => ['--session-id', id],
     resume: (id) => ['--resume', id],
-    prompt: (args) => `/task-run ${args}`,
+    prompt: (skill, args) => `/${skill} ${args}`,
     trust: /trust this folder/i,
   },
 }
@@ -98,7 +98,7 @@ export const liveSessions = (terminals, dirs, procs) =>
 // Вопрос о доверии папке на экране агента: отвечает на него человек.
 export const asksTrust = (screen, kind = 'claude') => AGENTS[kind].trust.test(screen)
 
-export function runArgs({ name, cwd, task, agent, session, resume, launch, ownSpace, parent, shell, agentArgs, taskArgs }) {
+export function runArgs({ name, cwd, task, agent, session, resume, launch, ownSpace, parent, shell, agentArgs, taskArgs, estimateFirst }) {
   const a = AGENTS[agent]
   const labels = [
     'task-fleet=1',
@@ -120,7 +120,7 @@ export function runArgs({ name, cwd, task, agent, session, resume, launch, ownSp
     '--', shell, '-lc', WRAP, ...a.command,
     ...(session ? (resume ? a.resume(session) : a.start(session)) : []),
     ...agentArgs,
-    ...(taskArgs ? [a.prompt(taskArgs)] : []),
+    ...(taskArgs ? [a.prompt(estimateFirst ? 'task-estimate' : 'task-run', taskArgs)] : []),
   ]
 }
 
@@ -134,6 +134,7 @@ export function options(argv) {
       task: { type: 'string' },
       agent: { type: 'string', default: 'claude' },
       'task-args': { type: 'string' },
+      'estimate-first': { type: 'boolean', default: false },
       session: { type: 'string' },
       resume: { type: 'boolean', default: false },
       replace: { type: 'boolean', default: false },
@@ -154,6 +155,9 @@ export function options(argv) {
   if (session !== null && !a.session.test(session)) throw new Error(`--session: не ID сессии ${agent}`)
   const taskArgs = values['task-args'] ?? null
   if (taskArgs !== null && !taskArgs.trim()) throw new Error('--task-args: пусто')
+  if (values['estimate-first'] && (!taskArgs || values.resume || task.startsWith('read-'))) {
+    throw new Error('--estimate-first: нужна задача с --task-args без --resume')
+  }
   const limit = Number(values.limit)
   const timeout = Number(values.timeout)
   const budget = Number(values.budget)
@@ -161,7 +165,7 @@ export function options(argv) {
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('--timeout: секунды больше нуля')
   if (!Number.isFinite(budget) || budget <= 0) throw new Error('--budget: секунды больше нуля')
   return {
-    name, cwd, task, agent, session, taskArgs, resume: values.resume, replace: values.replace,
+    name, cwd, task, agent, session, taskArgs, estimateFirst: values['estimate-first'], resume: values.resume, replace: values.replace,
     limit, timeout, budget, launch: randomUUID(), agentArgs: positionals,
   }
 }

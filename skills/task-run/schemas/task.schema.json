@@ -19,6 +19,27 @@
     "type": { "enum": ["feature", "bug"] },
     "level": { "enum": ["S", "M", "L"] },
     "levelReason": { "type": "string" },
+    "estimateIntake": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "source": { "enum": ["user", "tracker"] },
+        "minutes": { "type": "integer", "minimum": 1 },
+        "spentBefore": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "estimate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source", "minutes", "band", "files", "cases", "plan"],
+      "properties": {
+        "source": { "enum": ["user", "tracker", "model"] },
+        "minutes": { "type": "integer", "minimum": 1 },
+        "band": { "enum": ["T1", "T2", "T3", "T4", "T5"] },
+        "files": { "type": "integer", "minimum": 1 },
+        "cases": { "type": "integer", "minimum": 0 },
+        "plan": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "actualMinutes": { "type": "integer", "minimum": 1 }
+      }
+    },
     "base": { "type": "string", "minLength": 1 },
     "delivery": { "enum": ["mr", "push"] },
     "branch": { "type": "string", "minLength": 1 },
