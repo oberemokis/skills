@@ -92,6 +92,9 @@ function withMap(map) {
 }
 
 const cases = [
+  ['SSH-профиль без хоста не сохраняется', () => ({
+    ...validProject(), execution: { mode: 'ssh', root: '/srv/app' },
+  }), ['$.execution: нет поля host']],
   ['полный файл задачи', validTask, []],
   ['полный файл проекта', validProject, []],
   [

@@ -18,11 +18,12 @@
 // погашен; 2: ошибка вызова; 1: hc или herdr-app ответил ошибкой.
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { parseArgs } from 'node:util'
+import { bind, profile } from '../../task-run/scripts/remote.mjs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
@@ -44,6 +45,17 @@ export const AGENTS = {
     resume: (id) => ['--resume', id],
     prompt: (skill, args) => `/${skill} ${args}`,
     trust: /trust this folder/i,
+  },
+  opencode: {
+    command: ['opencode', '--standalone'],
+    program: /(^|\/)opencode$/,
+    apps: ['opencode'],
+    newSession: () => `ses_${randomUUID().replaceAll('-', '').slice(0, 26)}`,
+    session: /^ses_[A-Za-z0-9]+$/,
+    start: id => ['--session', id],
+    resume: id => ['--session', id],
+    prompt: (skill, args) => `@${skill} ${args}`,
+    trust: /trust this (folder|directory)/i,
   },
 }
 
@@ -98,12 +110,17 @@ export const liveSessions = (terminals, dirs, procs) =>
 // Вопрос о доверии папке на экране агента: отвечает на него человек.
 export const asksTrust = (screen, kind = 'claude') => AGENTS[kind].trust.test(screen)
 
-export function runArgs({ name, cwd, task, agent, session, resume, launch, ownSpace, parent, shell, agentArgs, taskArgs, estimateFirst }) {
+export function runArgs({ name, cwd, task, agent, session, resume, launch, ownSpace, parent, shell, agentArgs, taskArgs, estimateFirst, project }) {
   const a = AGENTS[agent]
+  const prompt = taskArgs && a.prompt(estimateFirst ? 'task-estimate' : 'task-run', taskArgs + (project ? ` --project ${project}` : ''))
+  const tail = agent === 'opencode'
+    ? ['--prompt', prompt || agentArgs[0]]
+    : [...agentArgs, ...(prompt ? [prompt] : [])]
   const labels = [
     'task-fleet=1',
     `task=${task}`,
     `agent=${agent}`,
+    ...(project ? [`fleet-project=${project}`] : []),
     ...(session ? [`agent-session=${session}`] : []),
     // По ней терминал находится сразу после запуска, даже если ID сессии агент выдаёт сам.
     `fleet-launch=${launch}`,
@@ -119,8 +136,7 @@ export function runArgs({ name, cwd, task, agent, session, resume, launch, ownSp
     ...labels.flatMap((label) => ['--label', label]),
     '--', shell, '-lc', WRAP, ...a.command,
     ...(session ? (resume ? a.resume(session) : a.start(session)) : []),
-    ...agentArgs,
-    ...(taskArgs ? [a.prompt(estimateFirst ? 'task-estimate' : 'task-run', taskArgs)] : []),
+    ...tail,
   ]
 }
 
@@ -131,6 +147,8 @@ export function options(argv) {
     options: {
       name: { type: 'string' },
       cwd: { type: 'string' },
+      project: { type: 'string' },
+      branch: { type: 'string' },
       task: { type: 'string' },
       agent: { type: 'string', default: 'claude' },
       'task-args': { type: 'string' },
@@ -154,6 +172,10 @@ export function options(argv) {
   const session = values.session ?? a.newSession?.() ?? null
   if (session !== null && !a.session.test(session)) throw new Error(`--session: не ID сессии ${agent}`)
   const taskArgs = values['task-args'] ?? null
+  if (values.project !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(values.project)) throw new Error('--project: нужно имя профиля')
+  if (agent === 'opencode' && (task.startsWith('read-') || (taskArgs ? positionals.length : positionals.length !== 1))) {
+    throw new Error('OpenCode: нужна задача с --task-args или один промпт продолжения')
+  }
   if (taskArgs !== null && !taskArgs.trim()) throw new Error('--task-args: пусто')
   if (values['estimate-first'] && (!taskArgs || values.resume || task.startsWith('read-'))) {
     throw new Error('--estimate-first: нужна задача с --task-args без --resume')
@@ -165,7 +187,7 @@ export function options(argv) {
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('--timeout: секунды больше нуля')
   if (!Number.isFinite(budget) || budget <= 0) throw new Error('--budget: секунды больше нуля')
   return {
-    name, cwd, task, agent, session, taskArgs, estimateFirst: values['estimate-first'], resume: values.resume, replace: values.replace,
+    name, cwd, task, agent, session, taskArgs, project: values.project, branch: values.branch, estimateFirst: values['estimate-first'], resume: values.resume, replace: values.replace,
     limit, timeout, budget, launch: randomUUID(), agentArgs: positionals,
   }
 }
@@ -197,7 +219,7 @@ function activeSpace() {
 }
 
 function worktreeDirs() {
-  const root = join(homedir(), '.local/state/task-run')
+  const root = process.env.TASK_RUN_STATE ?? join(homedir(), '.local/state/task-run')
   const dirs = new Set()
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
@@ -294,6 +316,15 @@ async function main() {
   let opts
   try {
     opts = options(process.argv.slice(2))
+    if (opts.project) {
+      const p = profile(opts.project)
+      if (p.data.execution?.mode === 'ssh') {
+        if (opts.task.startsWith('read-')) throw new Error('SSH: режим без задачи не поддерживается')
+        opts.cwd = bind(p, opts.task, opts.cwd, opts.branch)
+      } else if (existsSync(join(p.dir, 'control', opts.task, 'binding.json'))) {
+        throw new Error('у задачи есть привязка SSH; переключение на локальный checkout запрещено')
+      }
+    }
     if (!statSync(opts.cwd).isDirectory()) throw new Error(`--cwd: ${opts.cwd} не папка`)
   } catch (error) {
     console.error(error.message)

@@ -35,7 +35,7 @@ exec "$hook" "$@"
 npx skills add oberemokis/skills
 ```
 
-[skills](https://github.com/vercel-labs/skills) копирует скиллы в папки выбранных агентов. `task-run` и `task-fleet` он пропускает: они помечены `metadata.internal`, работают только в Claude Code внутри Herdr и завязаны на мой процесс. Ревьюеров из `agents/` он не ставит, их копируй руками. Без них `review` проводит обе роли сам.
+[skills](https://github.com/vercel-labs/skills) копирует скиллы в папки выбранных агентов. Внутренние скиллы Fleet он пропускает: они помечены `metadata.internal` и завязаны на мой процесс. Ревьюеров из `agents/` он не ставит, их копируй руками. Без них `review` проводит обе роли сам.
 
 Не запускай `npx skills add` поверх `link.sh`. Он удаляет ссылку и кладёт на её место копию, и правки клона перестают доходить до агента.
 
@@ -72,7 +72,7 @@ docs/                     как устроено и как писать
 - стек: `effect`, `golang`, `nitro`, `nuxt`, `pinia`, `playwright`, `pnpm`, `tailwind`, `turbo`, `typescript`, `vite`, `vitest`, `vue`, `vueuse`
 - git: `commit-rules`, `worktree`
 - передача работы между агентами и сессиями: `handoff`
-- только Claude Code в Herdr: `task-run`, `task-fleet`, [task-estimate](./skills/task-estimate/SKILL.md) (оценка времени по плану; [симуляция на истории](./skills/task-estimate/simulation.md))
+- Fleet: оркестратор в Claude Code под Herdr; задачи в Claude Code или OpenCode. `task-run` использует [локальный профиль или SSH](./skills/task-run/remote.md); [task-estimate](./skills/task-estimate/SKILL.md) оценивает время по плану ([симуляция на истории](./skills/task-estimate/simulation.md)).
 
 ## Документация
 

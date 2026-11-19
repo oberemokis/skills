@@ -60,6 +60,15 @@ for (const [name, t, expected] of cases) {
 const BASE = ['--name', 'feature-proj-1', '--cwd', '/p/.worktrees/feature-PROJ-1', '--task', 'PROJ-1']
 const run = (argv, extra = {}) => runArgs({ ...options(argv), ownSpace: 'main', parent: 't7', shell: '/bin/zsh', ...extra })
 
+test('OpenCode открывает оценщик в локальной TUI и продолжает по тому же ID', () => {
+  const args = run([...BASE, '--agent', 'opencode', '--estimate-first', '--task-args', 'PROJ-1 --fleet'])
+  const session = args[args.indexOf('--session') + 1]
+  assert.match(session, /^ses_/)
+  assert.deepEqual(args.slice(-6), ['opencode', '--standalone', '--session', session, '--prompt', '@task-estimate PROJ-1 --fleet'])
+  assert.deepEqual(run([...BASE, '--agent', 'opencode', '--resume', '--session', session, '--', 'продолжай']).slice(-4),
+    ['--session', session, '--prompt', 'продолжай'])
+})
+
 test('промпт task-run собирает скрипт из --task-args и ставит последним, после --session-id', () => {
   const args = run([...BASE, '--session', UUID, '--task-args', 'PROJ-1 --fleet --base dev'])
   assert.deepEqual(args.slice(args.indexOf('--')), [

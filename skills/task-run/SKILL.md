@@ -2,7 +2,7 @@
 name: task-run
 description: "Маршрут одной задачи из трекера от взятия в работу до закрытия: план с тестовыми случаями на подтверждение, реализация в worktree с диффом в панели Review Herdr (вне Herdr в gitone) и стендом во вкладке браузера с начала работы, автотесты, ревью агентами, ручная проверка перед коммитом, доставка и закрытие. Состояние задачи в JSON вне репозитория, данные проекта в его папке. Вызывается руками как /task-run ID или из task-fleet."
 disable-model-invocation: true
-compatibility: "Только Claude Code. Панель Review и fleet работают в Herdr."
+compatibility: "Claude Code; OpenCode 2 в сессии Fleet. Панель Review для локальных worktree в Herdr."
 metadata:
   internal: true
 ---
@@ -40,7 +40,7 @@ metadata:
 
 ### Проект
 
-Первым шагом запусти `node <папка скилла>/scripts/resolve-project.mjs`. Ответ JSON:
+Первым шагом запусти `node <папка скилла>/scripts/resolve-project.mjs`, передав `--project <имя>`, если оно пришло от Fleet или пользователя. При `execution.mode=ssh` сначала прочитай [удалённый маршрут](remote.md). Его правила cwd, инструментов, диффа и стенда действуют на всех этапах и при продолжении. SSH напрямую без Fleet: предложи `/task-fleet --project <имя> <ID>`, не создавай worktree в локальной сессии. Ответ JSON:
 
 - `found`: прочитай `project.json` и `rules.md` из `dir`. Где `rules.md` спорит с инструкциями репозитория, прав `rules.md`: его писал пользователь под этот маршрут.
 - `missing` или `broken`: с `--fleet` поставь задачу на стоп с причиной «нет папки проекта», опросник ведёт оркестратор. Без `--fleet` проведи опросник по [project.md](project.md).
