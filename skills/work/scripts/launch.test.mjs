@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { agentProcess, asksTrust, liveSessions, options, startArgs, stopAgent, tokens } from './launch.mjs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { agentProcess, asksTrust, liveSessions, openArgs, options, repoRoot, startArgs, stopAgent, tokens } from './launch.mjs'
 
 const UUID = '0b6f3c1e-1d2a-4c3b-9e8f-7a6b5c4d3e2f'
 const DIRS = ['.worktrees']
@@ -112,6 +116,41 @@ test('плохие аргументы отклоняются до запуска
   assert.throws(() => options(['--name', 'n', ...base, '--budget', '0']), /--budget/)
   assert.throws(() => options(['--name', 'n', ...base, '--agent', 'cursor']), /--agent/)
   assert.throws(() => options(['--name', 'n', ...base, '--task-args', ' ']), /--task-args/)
+})
+
+test('корень репозитория есть только у связанного worktree', () => {
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'work-repo-')))
+  try {
+    const git = (...args) => execFileSync('git', ['-C', dir, ...args], { stdio: 'ignore' })
+    git('init', '-q', '-b', 'main')
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'init')
+    git('worktree', 'add', '-q', '-b', 'feature/x', '.worktrees/feature-x')
+    assert.equal(repoRoot(join(dir, '.worktrees/feature-x')), dir)
+    assert.equal(repoRoot(dir), null)
+    assert.equal(repoRoot(tmpdir()), null)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('worktree открывается группой под пространством репозитория', () => {
+  const wt = '/r/.worktrees/feature-x'
+  const repo = { workspace_id: 'w1', worktree: { repo_root: '/r', is_linked_worktree: false, checkout_path: '/r' } }
+  const plainRepo = { workspace_id: 'w2' }
+  const other = { workspace_id: 'w3', worktree: { repo_root: '/o', is_linked_worktree: false, checkout_path: '/o' } }
+  const tail = ['--path', wt, '--label', 'work-x', '--no-focus']
+  const cases = [
+    ['пространство репозитория из herdr', [other, repo], [], ['worktree', 'open', '--workspace', 'w1', ...tail]],
+    ['обычное пространство в корне репозитория', [plainRepo], [{ workspace_id: 'w2', cwd: '/r' }], ['worktree', 'open', '--workspace', 'w2', ...tail]],
+    ['пространства репозитория нет, herdr заводит его сам', [other], [], ['worktree', 'open', '--cwd', '/r', ...tail]],
+  ]
+  for (const [name, workspaces, panes, want] of cases) {
+    assert.deepEqual(openArgs(wt, '/r', workspaces, panes, 'work-x'), want, name)
+  }
+  const plain = ['workspace', 'create', '--cwd', wt, '--label', 'work-x', '--no-focus']
+  assert.deepEqual(openArgs(wt, null, [repo], [], 'work-x'), plain, 'не worktree')
+  const open = { workspace_id: 'w4', worktree: { repo_root: '/r', is_linked_worktree: true, checkout_path: wt } }
+  assert.deepEqual(openArgs(wt, '/r', [repo, open], [], 'work-x'), plain, 'worktree уже открыт в чужом пространстве')
 })
 
 test('агент гасится TERM и затем CONT, уже вышедший процесс не ошибка', () => {

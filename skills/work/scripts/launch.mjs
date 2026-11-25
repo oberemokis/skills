@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Запускает сессию задачи в своём пространстве herdr: проверяет дубль, считает места,
-// создаёт пространство, метит панель и ждёт, пока агент в ней будет готов. Звать под локом мест:
+// открывает пространство (worktree группой под репозиторием), метит панель и ждёт, пока агент в ней будет готов. Звать под локом мест:
 //
 //   flock -w 20 -E 75 ~/.local/state/task-run/work.lock node launch.mjs \
 //     --name <имя> --cwd <worktree> --task <ID> [--agent claude] [--task-args '<ID> --work …'] \
@@ -16,7 +16,7 @@
 // погашен; 2: ошибка вызова; 1: herdr ответил ошибкой.
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -122,6 +122,41 @@ export function startArgs(opts, pane, ms) {
     '--', ...a.args,
     ...(session ? (resume ? a.resume(session) : a.start(session)) : []),
     ...tail,
+  ]
+}
+
+// Корень репозитория, если cwd это связанный worktree: первая запись `git worktree list` это основной checkout.
+// Не связанный worktree (основная папка, папка управления SSH, не git) даёт null.
+export function repoRoot(cwd, git = (args) => execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })) {
+  try {
+    const top = git(['rev-parse', '--show-toplevel']).trim()
+    const main = git(['worktree', 'list', '--porcelain']).match(/^worktree (.+)$/m)?.[1]
+    return main && realpathSync(main) !== realpathSync(top) ? realpathSync(main) : null
+  } catch {
+    return null
+  }
+}
+
+// Как открыть пространство задачи. Worktree репозитория открывается группой под пространством репозитория,
+// как ветка из боковой панели herdr: под уже открытым, иначе herdr заводит пространство репозитория сам.
+// Worktree, уже открытый в другом пространстве, и не worktree открываются отдельным пространством:
+// `worktree open` по открытому переименовал бы чужое пространство и отдал бы его панель.
+export function openArgs(cwd, root, workspaces, panes, label) {
+  const plain = ['workspace', 'create', '--cwd', cwd, '--label', label, '--no-focus']
+  if (!root) return plain
+  const real = (p) => {
+    try {
+      return realpathSync(p)
+    } catch {
+      return p
+    }
+  }
+  if (workspaces.some((w) => w.worktree && real(w.worktree.checkout_path) === real(cwd))) return plain
+  const parent = workspaces.find((w) => w.worktree && !w.worktree.is_linked_worktree && real(w.worktree.repo_root) === root)
+    ?? workspaces.find((w) => !w.worktree && panes.some((p) => p.workspace_id === w.workspace_id && p.cwd && real(p.cwd) === root))
+  return [
+    'worktree', 'open', ...(parent ? ['--workspace', parent.workspace_id] : ['--cwd', root]),
+    '--path', cwd, '--label', label, '--no-focus',
   ]
 }
 
@@ -301,7 +336,8 @@ async function launch(opts) {
   }
 
   if (!target) {
-    const created = herdr(['workspace', 'create', '--cwd', opts.cwd, '--label', `work-${opts.name}`, '--no-focus'])
+    const { workspaces = [], panes: all = [] } = herdr(['api', 'snapshot']).snapshot
+    const created = herdr(openArgs(opts.cwd, repoRoot(opts.cwd), workspaces, all, `work-${opts.name}`))
     target = { pane_id: created.root_pane.pane_id, workspace_id: created.workspace.workspace_id }
   }
   const id = target.pane_id
