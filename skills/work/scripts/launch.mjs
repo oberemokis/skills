@@ -17,8 +17,10 @@
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
+import { connect } from 'node:net'
 import { homedir } from 'node:os'
-import { isAbsolute, join } from 'node:path'
+import { isAbsolute, join, posix } from 'node:path'
+import { createInterface } from 'node:readline'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { parseArgs } from 'node:util'
 import { bind, profile } from '../../task-run/scripts/remote.mjs'
@@ -158,6 +160,43 @@ export function openArgs(cwd, root, workspaces, panes, label) {
     'worktree', 'open', ...(parent ? ['--workspace', parent.workspace_id] : ['--cwd', root]),
     '--path', cwd, '--label', label, '--no-focus',
   ]
+}
+
+// Куда поставить пространство SSH-задачи: сразу под пространством репозитория, его ветками
+// и пространствами других задач этого проекта. Вложить нельзя: группу в herdr даёт только `worktree open`,
+// а ему нужен локальный worktree, у SSH-задачи его нет. Репозиторий узнаётся по имени папки удалённого корня:
+// пространство с таким worktree, с такой меткой или с панелью в папке с таким именем. Нет такого: null.
+export function besideIndex(workspaces, panes, repo, project) {
+  const order = [...workspaces].sort((a, b) => a.number - b.number)
+  const name = (path) => path?.replace(/\/+$/, '').split('/').pop()
+  const isRepo = (w) => w.worktree
+    ? !w.worktree.is_linked_worktree && w.worktree.repo_name === repo
+    : w.label === repo || panes.some((p) => p.workspace_id === w.workspace_id && name(p.cwd) === repo)
+  const parent = order.findIndex(isRepo)
+  if (parent < 0) return null
+  const root = order[parent].worktree?.repo_root
+  const sibling = (w) => (root && w.worktree?.is_linked_worktree && w.worktree.repo_root === root)
+    || panes.some((p) => p.workspace_id === w.workspace_id && p.tokens?.[MARK] === '1' && p.tokens?.project === project)
+  let index = parent + 1
+  while (index < order.length && sibling(order[index])) index++
+  return index
+}
+
+export const socketPath = () => process.env.HERDR_SOCKET_PATH ?? join(homedir(), '.config/herdr/herdr.sock')
+
+// Запрос к сокету herdr: часть методов, например `workspace.move`, в CLI не выведена.
+export function request(method, params) {
+  return new Promise((resolve, reject) => {
+    const socket = connect(socketPath())
+    socket.on('error', reject)
+    socket.on('connect', () => socket.write(`${JSON.stringify({ id: 'work-launch', method, params })}\n`))
+    createInterface({ input: socket }).once('line', (line) => {
+      socket.end()
+      const reply = JSON.parse(line)
+      if (reply.error) reject(new HerdrError(reply.error.code ?? 'failed', reply.error.message ?? line))
+      else resolve(reply.result)
+    })
+  })
 }
 
 export function options(argv) {
@@ -339,6 +378,14 @@ async function launch(opts) {
     const { workspaces = [], panes: all = [] } = herdr(['api', 'snapshot']).snapshot
     const created = herdr(openArgs(opts.cwd, repoRoot(opts.cwd), workspaces, all, `work-${opts.name}`))
     target = { pane_id: created.root_pane.pane_id, workspace_id: created.workspace.workspace_id }
+    const index = opts.repo ? besideIndex(workspaces, all, opts.repo, opts.project) : null
+    if (index !== null) {
+      try {
+        await request('workspace.move', { workspace_id: target.workspace_id, insert_index: index })
+      } catch {
+        // Место в списке только для глаз: не встало, пространство остаётся в конце, запуск идёт дальше.
+      }
+    }
   }
   const id = target.pane_id
   herdr(['pane', 'report-metadata', id, '--source', SOURCE, ...tokens(opts).flatMap((t) => ['--token', t])])
@@ -373,6 +420,7 @@ async function main() {
       if (p.data.execution?.mode === 'ssh') {
         if (opts.task.startsWith('read-')) throw new Error('SSH: режим без задачи не поддерживается')
         opts.cwd = bind(p, opts.task, opts.cwd, opts.branch)
+        opts.repo = posix.basename(JSON.parse(readFileSync(join(opts.cwd, 'binding.json'), 'utf8')).root)
       } else if (existsSync(join(p.dir, 'control', opts.task, 'binding.json'))) {
         throw new Error('у задачи есть привязка SSH; переключение на локальный checkout запрещено')
       }

@@ -9,11 +9,9 @@
 // Код выхода 0: перемена; 3: сокет herdr закрылся (сервер перезапускался), проверь всё заново.
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 
-import { herdr, MARK, paneAgent, readProcs } from './launch.mjs'
+import { herdr, MARK, paneAgent, readProcs, socketPath } from './launch.mjs'
 
 const EVENTS = ['pane.updated', 'pane.closed', 'pane.exited', 'pane.agent_detected', 'workspace.closed']
 
@@ -95,7 +93,7 @@ function main() {
     })
   }
 
-  const socket = connect(process.env.HERDR_SOCKET_PATH ?? join(homedir(), '.config/herdr/herdr.sock'))
+  const socket = connect(socketPath())
   socket.on('connect', () => {
     const subscriptions = EVENTS.map((type) => ({ type }))
     socket.write(`${JSON.stringify({ id: 'work-watch', method: 'events.subscribe', params: { subscriptions } })}\n`)

@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { agentProcess, asksTrust, liveSessions, openArgs, options, repoRoot, startArgs, stopAgent, tokens } from './launch.mjs'
+import { agentProcess, asksTrust, besideIndex, liveSessions, openArgs, options, repoRoot, startArgs, stopAgent, tokens } from './launch.mjs'
 
 const UUID = '0b6f3c1e-1d2a-4c3b-9e8f-7a6b5c4d3e2f'
 const DIRS = ['.worktrees']
@@ -151,6 +151,23 @@ test('worktree открывается группой под пространст
   assert.deepEqual(openArgs(wt, null, [repo], [], 'work-x'), plain, 'не worktree')
   const open = { workspace_id: 'w4', worktree: { repo_root: '/r', is_linked_worktree: true, checkout_path: wt } }
   assert.deepEqual(openArgs(wt, '/r', [repo, open], [], 'work-x'), plain, 'worktree уже открыт в чужом пространстве')
+})
+
+test('пространство SSH-задачи встаёт под репозиторием, после его веток и задач проекта', () => {
+  const ws = (number, workspace_id, extra = {}) => ({ number, workspace_id, label: workspace_id, ...extra })
+  const tree = (root, linked) => ({ worktree: { repo_root: root, repo_name: root.split('/').pop(), is_linked_worktree: linked } })
+  const work = (workspace_id, project) => ({ workspace_id, cwd: `/state/${project}/control/PROJ-1`, tokens: { work: '1', project } })
+  const cases = [
+    ['метка пространства', [ws(2, 'a'), ws(1, 'app')], [], 1],
+    ['панель в папке репозитория', [ws(1, 'a'), ws(2, 'b'), ws(3, 'c')], [{ workspace_id: 'b', cwd: '/Users/me/app/' }], 2],
+    ['после веток репозитория', [ws(1, 'r', tree('/x/app', false)), ws(2, 'l', tree('/x/app', true)), ws(3, 'c')], [], 2],
+    ['после задач проекта, не после чужих', [ws(1, 'app'), ws(2, 't1'), ws(3, 't2'), ws(4, 'c')], [work('t1', 'app'), work('t2', 'other')], 2],
+    ['ветка того же имени из другого клона не родитель', [ws(1, 'l', tree('/x/app', true)), ws(2, 'c')], [], null],
+    ['репозитория нет', [ws(1, 'a')], [{ workspace_id: 'a', cwd: '/control/PROJ-1' }], null],
+  ]
+  for (const [name, workspaces, panes, want] of cases) {
+    assert.equal(besideIndex(workspaces, panes, 'app', 'app'), want, name)
+  }
 })
 
 test('агент гасится TERM и затем CONT, уже вышедший процесс не ошибка', () => {
