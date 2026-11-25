@@ -17,7 +17,7 @@ const TEXT = /\.(md|mjs|js|sh|json|ya?ml|toml)$/
 const ID_PREFIXES = new Set(['PROJ', 'UTF', 'ISO'])
 const HOST = /\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|org|net|io|ru|studio|dev|app|team|ai)\b/gi
 // По форме внутренний хост от публичного не отличить, поэтому публичная ссылка добавляется сюда осознанно.
-// status.app это поле JSON `hc get`, а не хост.
+// status.app это поле JSON `hc get` из истории в docs/task-run.md, а не хост.
 const PUBLIC_HOSTS = ['example.org', 'example.com', 'host.org', 'mirror.org', 'status.app', 'go.dev', 'wikipedia.org', 'github.com', 'agentskills.io']
 const PERSONAL_PATH = /\/(?:Users|home)\/([a-z][a-z0-9_-]*)/g
 const EXAMPLE_USERS = new Set(['me', 'user'])

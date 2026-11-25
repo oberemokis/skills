@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-// Говорит, идёт ли процесс в терминале Herdr (ядро hc): поднимается по предкам до первого,
-// кто держит терминал. Переменным окружения верить нельзя, HERDR_* и HC_* наследуются в обе стороны.
-// Вывод: hc | none | unknown (ps не ответил), код выхода 0 | 1 | 2.
+// Говорит, идёт ли процесс в панели herdr: поднимается по предкам до сервера herdr, который держит
+// оболочки панелей. Переменным окружения верить нельзя, HERDR_* наследуются во всё, что запущено из панели.
+// Вывод: herdr | none | unknown (ps не ответил), код выхода 0 | 1 | 2.
 import { execFileSync } from 'node:child_process'
 
-// Держатель терминала hc, `…/herdr-core hold --socket …`: путь до него бывает с пробелом,
-// поэтому ищется подстрока во всей командной строке, а не первое слово.
-const HC_HOLDER = /(^|\/)herdr-core hold( |$)/
-// Сервер старого herdr: его панели наследуют HC_* от терминала, из которого он запущен.
+// Сервер herdr, `…/herdr server`: оболочка панели его прямой ребёнок. Клиент `herdr` без `server`
+// панелей не держит. Путь бывает с пробелом, поэтому ищется подстрока во всей командной строке.
 const HERDR_SERVER = /(^|\/)herdr server( |$)/
 
 // readProc(pid) → { ppid, command } или null, если ps не ответил.
@@ -18,9 +16,7 @@ export function detectHost(pid, readProc) {
     seen.add(current)
     const proc = readProc(current)
     if (proc === null) return 'unknown'
-    // Решает ближний держатель: старый herdr внутри терминала hc это не Herdr.
-    if (HC_HOLDER.test(proc.command)) return 'hc'
-    if (HERDR_SERVER.test(proc.command)) return 'none'
+    if (HERDR_SERVER.test(proc.command)) return 'herdr'
     current = proc.ppid
   }
   return 'none'
@@ -39,7 +35,7 @@ function readProc(pid) {
 function main() {
   const host = detectHost(process.pid, readProc)
   console.log(host)
-  process.exit(host === 'hc' ? 0 : host === 'none' ? 1 : 2)
+  process.exit(host === 'herdr' ? 0 : host === 'none' ? 1 : 2)
 }
 
 // import.meta.main, а не сравнение argv[1] с путём модуля: скилл стоит ссылкой на клон, и через неё пути расходятся.

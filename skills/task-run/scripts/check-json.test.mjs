@@ -21,7 +21,7 @@ function validTask() {
     delivery: 'mr',
     branch: 'feature/PROJ-12',
     worktree: '/repo/.worktrees/feature-PROJ-12',
-    fleet: true,
+    work: true,
     session: { agent: 'feature-proj-12', workspace: 'w1', pane: 'w1:p1', claudeSession: 'abc' },
     stage: { code: 'implement', status: 'running', waiting: null, since: '2026-11-12T18:00:00+03:00' },
     stages: {

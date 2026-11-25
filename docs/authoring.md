@@ -44,7 +44,7 @@ policy:
 
 Пометки ставятся парой, и `check.sh` падает, если есть только одна из них.
 
-Скилл, который работает только в Claude Code, получает `compatibility` с объяснением и `metadata.internal: true`. Такой скилл `link.sh` не ставит в `~/.agents/skills`, а `npx skills` его пропускает. Пара для Codex ему не нужна. Сейчас это `task-run` и `task-fleet`.
+Скилл, который работает только в Claude Code, получает `compatibility` с объяснением и `metadata.internal: true`. Такой скилл `link.sh` не ставит в `~/.agents/skills`, а `npx skills` его пропускает. Пара для Codex ему не нужна. Сейчас это `task-run` и `work`.
 
 ## Структура тела
 

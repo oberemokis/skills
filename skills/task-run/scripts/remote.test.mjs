@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const cli = fileURLToPath(new URL('./remote.mjs', import.meta.url))
 
 test('шлюз находит профиль без клона, передаёт stdin и argv в рабочую копию; потеря ответа не повторяет запись', t => {
-  const tmp = realpathSync(mkdtempSync(join(tmpdir(), 'fleet-ssh-')))
+  const tmp = realpathSync(mkdtempSync(join(tmpdir(), 'work-ssh-')))
   t.after(() => rmSync(tmp, { recursive: true, force: true }))
   const root = join(tmp, "remote's repo")
   const dir = join(tmp, 'app')
@@ -42,14 +42,18 @@ test('шлюз находит профиль без клона, передаёт
   const tree = join(root, '.worktrees', 'feature-PROJ-1')
   git('-C', root, 'worktree', 'add', '-qb', 'feature/PROJ-1', tree)
   const invoke = (url, argv, env = {}) => spawnSync(process.execPath, [fileURLToPath(new URL(url, import.meta.url)), ...argv], {
-    cwd: dir, encoding: 'utf8', env: { ...process.env, HC_TERMINAL_ID: '', TASK_RUN_STATE: tmp, PATH: `${tmp}:${process.env.PATH}`, ...env },
+    cwd: dir, encoding: 'utf8', env: { ...process.env, TASK_RUN_STATE: tmp, PATH: `${tmp}:${process.env.PATH}`, ...env },
   })
   const result = invoke('./resolve-project.mjs', ['--project', 'app'])
   assert.equal(result.status, 0, result.stderr)
   assert.equal(JSON.parse(result.stdout).root, root)
-  const launch = invoke('../../task-fleet/scripts/launch.mjs', ['--project', 'app', '--cwd', tree, '--branch', 'feature/PROJ-1',
-    '--task', 'PROJ-1', '--task-args', 'PROJ-1 --fleet', '--name', 'feature-proj-1'])
-  assert.match(launch.stderr, /HC_TERMINAL_ID/)
+  // herdr подменён отказом: запуск доходит до него только после привязки worktree.
+  writeFileSync(join(tmp, 'herdr'), '#!/bin/sh\necho \'{"error":{"code":"fake","message":"herdr недоступен"}}\' >&2\nexit 1\n')
+  chmodSync(join(tmp, 'herdr'), 0o755)
+  const launch = invoke('../../work/scripts/launch.mjs', ['--project', 'app', '--cwd', tree, '--branch', 'feature/PROJ-1',
+    '--task', 'PROJ-1', '--task-args', 'PROJ-1 --work', '--name', 'feature-proj-1'])
+  assert.equal(launch.status, 1, launch.stderr)
+  assert.match(launch.stderr, /herdr недоступен/)
   const bound = ['app', '--task', 'PROJ-1', '--']
   const inTree = invoke('./remote.mjs', [...bound, 'pwd', '-P'])
   assert.equal(inTree.stdout.trim(), tree, inTree.stderr)

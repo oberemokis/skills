@@ -3,9 +3,9 @@ import { test } from 'node:test'
 
 import { detectHost } from './host.mjs'
 
-const HC = '/Users/me/.local/share/herdr-core/active/Herdr Core/MacOS/herdr-core hold --socket /tmp/hc/default.sock'
-const HC_DAEMON = '/Users/me/.local/share/herdr-core/active/Herdr Core/MacOS/herdr-core --hc-launchd'
-const HERDR = '/opt/homebrew/bin/herdr server'
+const SERVER = '/opt/homebrew/bin/herdr server'
+const SERVER_SPACE = '/Users/me/Applications/My Tools/herdr server'
+const CLIENT = '/opt/homebrew/bin/herdr'
 
 // Таблица процессов: [pid, ppid, команда]; от pid 100 вверх до 1.
 function processes(rows) {
@@ -14,11 +14,10 @@ function processes(rows) {
 }
 
 const cases = [
-  ['терминал hc, путь держателя с пробелом', [[100, 50, 'node host.mjs'], [50, 40, '-zsh'], [40, 1, HC]], 'hc'],
-  ['панель старого herdr', [[100, 50, 'node host.mjs'], [50, 40, '-zsh'], [40, 1, HERDR]], 'none'],
-  ['старый herdr запущен в терминале hc: решает ближний', [[100, 50, '-zsh'], [50, 40, HERDR], [40, 30, '-zsh'], [30, 1, HC]], 'none'],
-  ['ядро hc запущено из панели старого herdr: решает ближний', [[100, 50, '-zsh'], [50, 40, HC], [40, 30, '-zsh'], [30, 1, HERDR]], 'hc'],
-  ['демон hc без hold держателем не считается', [[100, 50, '-zsh'], [50, 1, HC_DAEMON]], 'none'],
+  ['панель herdr', [[100, 50, 'node host.mjs'], [50, 40, '-fish'], [40, 1, SERVER]], 'herdr'],
+  ['путь сервера с пробелом', [[100, 50, 'node host.mjs'], [50, 40, '-zsh'], [40, 1, SERVER_SPACE]], 'herdr'],
+  ['глубоко под агентом в панели', [[100, 60, 'node host.mjs'], [60, 50, 'claude'], [50, 40, '-fish'], [40, 1, SERVER]], 'herdr'],
+  ['клиент herdr панелей не держит', [[100, 50, '-zsh'], [50, 40, CLIENT], [40, 1, '/usr/bin/login -fp me']], 'none'],
   ['обычный терминал', [[100, 50, 'node host.mjs'], [50, 40, '-zsh'], [40, 1, '/usr/bin/login -fp me']], 'none'],
 ]
 
