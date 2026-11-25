@@ -15,7 +15,7 @@
 
 ## Вопрос
 
-«Посмотри дифф и результат в браузере». В `preview`: сценарии с результатом, пути к скриншотам, diffstat (`git diff --stat $(git merge-base origin/<база> HEAD)`, вместе с незакоммиченным), новые файлы (`git ls-files --others --exclude-standard`).
+«Посмотри дифф и результат в браузере». В `preview`: сценарии с результатом, пути к скриншотам, diffstat (`git diff --stat <точка>` с точкой из `scripts/fingerprint.mjs --point <база> <worktree>`, вместе с незакоммиченным), новые файлы (`git ls-files --others --exclude-standard`).
 
 - «Всё верно, доставлять» (рекомендую).
 - «Есть замечания»: текстом через «Другое».
