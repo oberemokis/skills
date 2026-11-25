@@ -41,7 +41,7 @@
       }
     },
     "base": { "type": "string", "minLength": 1 },
-    "delivery": { "enum": ["mr", "push"] },
+    "delivery": { "enum": ["mr", "push", "local"] },
     "branch": { "type": "string", "minLength": 1 },
     "worktree": { "type": "string", "pattern": "^/" },
     "work": { "type": "boolean" },

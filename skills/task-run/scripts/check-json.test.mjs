@@ -137,6 +137,21 @@ const cases = [
     [],
   ],
   [
+    'локальная доставка закрыта коммитом без MR',
+    () => ({
+      ...validTask(),
+      delivery: 'local',
+      commit: 'abc1234',
+      stages: { ...validTask().stages, deliver: { status: 'done', at: 'x' } },
+    }),
+    [],
+  ],
+  [
+    'локальная доставка закрыта без коммита',
+    () => ({ ...validTask(), delivery: 'local', stages: { ...validTask().stages, deliver: { status: 'done', at: 'x' } } }),
+    ['$.commit: ожидался string'],
+  ],
+  [
     'сессия другого агента: вид и ID сессии рядом со старыми полями',
     () => ({ ...validTask(), session: { ...validTask().session, claudeSession: null, agentKind: 'codex', agentSession: '019a1e67-ec48-7000-8000-000000000001' } }),
     [],

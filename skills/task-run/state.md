@@ -7,7 +7,7 @@
 - `schema`: всегда `task-run/task@1`. `plugin`: версия и папка плагина, на котором начата задача; только у задач до отказа от плагина, у новых поля нет.
 - `project`, `task`, `title`, `type` (`feature` или `bug`), `level`, `levelReason`.
 - `estimateIntake` (под `work`): `spentBefore` в минутах до первого активного интервала, если известен; `minutes` и `source` только парой при готовой оценке. `estimate` появляется после плана: `source` (`user`, `tracker`, `model`), `minutes`, временной `band`, снимок `files`, `cases` и текст шагов `plan`. При закрытии опционально `actualMinutes`. Старые файлы и прямой запуск не требуют этих полей.
-- `base`, `delivery` (`mr` или `push`), `branch`, `worktree` (абсолютный путь), `work`.
+- `base`, `delivery` (`mr`, `push` или `local`: коммит в ветке задачи без push и MR), `branch`, `worktree` (абсолютный путь), `work`.
 - `session`: `workspace` и `pane` это `$HERDR_WORKSPACE_ID` и `$HERDR_PANE_ID`, только если `scripts/host.mjs` ответил `herdr`, иначе `null`; `agent` всегда `null`; `agentKind` это вид агента (`claude`, `codex`, `opencode`), `agentSession` это ID его сессии (у Claude `$CLAUDE_CODE_SESSION_ID`); `claudeSession` тот же ID у Claude и `null` у других агентов, его читают файлы, начатые до `agentKind`. Файла без `agentKind` вёл Claude.
 - `stage`: текущий этап, его состояние (`running`, `waiting-user`, `waiting-external`, `blocked`, `stopped`, `done`), `waiting` одной строкой и `since`. По `stage` оркестратор понимает, что с задачей, не читая экран.
 - `stages`: каждый этап один раз, статус и время, короткая `note`. Статус меняется заменой значения.
