@@ -29,3 +29,35 @@
 4. ID вкладки действует только в этой сессии. Продолжение в новой сессии открывает новую вкладку.
 
 Расширения нет или оно не отвечает: открой адрес командой `open` и скажи об этом одной строкой. Сценарии тогда идут без него, пользователь видит их скриншоты в вопросе show.
+
+## Скриншот с рамкой
+
+Каждый скриншот, который видит пользователь, несёт красную рамку на том, что проверяется: правке или результате сценария. Скриншот без рамки не показывает, куда смотреть.
+
+Страница открывается по адресу без входа и без кликов: снимок делает `scripts/shots.mjs` по разделу «Визуальное ревью» в `stages/review.md`, с `--out` в нужную папку. Иначе, во вкладке после шагов сценария:
+
+1. Выбери селектор проверяемого элемента так же, как для `shots.mjs`: самый узкий элемент, который охватывает результат целиком.
+2. Нарисуй рамку инструментом JavaScript расширения. Рамка отдельным слоем, разметку и стили страницы она не трогает; цвет и отступ как у `shots.mjs`:
+
+   ```js
+   (() => {
+     document.getElementById('task-run-frames')?.remove()
+     const layer = document.createElement('div')
+     layer.id = 'task-run-frames'
+     layer.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none'
+     for (const el of document.querySelectorAll('<селектор>')) {
+       const r = el.getBoundingClientRect()
+       const frame = document.createElement('div')
+       frame.style.cssText = `position:absolute;box-sizing:border-box;left:${r.left + scrollX - 7}px;top:${r.top + scrollY - 7}px;width:${r.width + 14}px;height:${r.height + 14}px;border:3px solid #ff2d2d`
+       layer.append(frame)
+     }
+     document.documentElement.append(layer)
+     return layer.childElementCount
+   })()
+   ```
+
+   Ответ 0: селектор ничего не нашёл, поправь его. Без рамки не снимай.
+3. Прокрути рамку в видимую область и сделай скриншот расширением. Файл скриншота расширение кладёт во временную папку `$TMPDIR/claude-chrome-screenshots-*/`: скопируй его в папку снимков с именем `<номер>-<что видно>` и прежним расширением, например `2-cart-empty.png`.
+4. Убери рамку: `document.getElementById('task-run-frames')?.remove()`. Иначе она останется в следующих шагах сценария.
+
+Без расширения скриншот с рамкой даёт только `shots.mjs`. Страницу за входом или после кликов он не снимет: назови её в итоге без скриншота.
