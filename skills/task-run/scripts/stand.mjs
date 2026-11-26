@@ -14,9 +14,15 @@ import { constants } from 'node:os'
 export const ownerFile = (port) => `/tmp/task-run-port-${port}.owner`
 
 // Владелец пишется до старта сервера: занятый лок другая задача объясняет по этому файлу.
-export function serve({ ownerPath, owner, command, cwd }) {
+// Порт у каждой задачи свой, поэтому `{port}` в `stand.start` заменяется им, и он же лежит в PORT.
+export function serve({ ownerPath, owner, command, cwd, port }) {
   writeFileSync(ownerPath, `${owner}\n`)
-  return spawn(command, { shell: true, stdio: 'inherit', cwd })
+  return spawn(command.replaceAll('{port}', String(port)), {
+    shell: true,
+    stdio: 'inherit',
+    cwd,
+    env: { ...process.env, PORT: String(port) },
+  })
 }
 
 function main() {
@@ -25,7 +31,7 @@ function main() {
     console.error('stand.mjs <порт> <ID> <worktree> "<stand.start>"')
     process.exit(2)
   }
-  const child = serve({ ownerPath: ownerFile(port), owner: `${id} ${worktree}`, command, cwd: process.cwd() })
+  const child = serve({ ownerPath: ownerFile(port), owner: `${id} ${worktree}`, command, cwd: process.cwd(), port })
   for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) process.on(signal, () => child.kill(signal))
   child.on('exit', (code, signal) => process.exit(code ?? 128 + (constants.signals[signal] ?? 0)))
 }

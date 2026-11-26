@@ -13,10 +13,18 @@ test('владелец записан до старта, команда стен
   const ownerPath = join(dir, 'owner')
 
   // Команда со встроенным кодом: ради неё скрипт и существует.
-  const child = serve({ ownerPath, owner: 'PROJ-1 /p/.worktrees/feature-PROJ-1', command: 'pwd > where; exit 3', cwd: dir })
+  const child = serve({
+    ownerPath,
+    owner: 'PROJ-1 /p/.worktrees/feature-PROJ-1',
+    command: 'pwd > where; echo "{port} $PORT" > port; exit 3',
+    cwd: dir,
+    port: 3002,
+  })
   const [code] = await once(child, 'exit')
 
   assert.equal(code, 3)
+  // Порт задачи дошёл и подстановкой в команду, и переменной окружения.
+  assert.equal(readFileSync(join(dir, 'port'), 'utf8'), '3002 3002\n')
   assert.equal(readFileSync(ownerPath, 'utf8'), 'PROJ-1 /p/.worktrees/feature-PROJ-1\n')
   // `where` лёг в dir, значит команда шла из папки стенда; pwd на macOS отдаёт путь через /private.
   assert.equal(realpathSync(readFileSync(join(dir, 'where'), 'utf8').trim()), realpathSync(dir))
