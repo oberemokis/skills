@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { agentProcess, asksTrust, liveSessions, openArgs, options, repoRoot, startArgs, stopAgent, tokens } from './launch.mjs'
+import { agentProcess, arrangeTabs, asksTrust, liveSessions, openArgs, options, repoRoot, startArgs, stopAgent, tokens } from './launch.mjs'
 
 const UUID = '0b6f3c1e-1d2a-4c3b-9e8f-7a6b5c4d3e2f'
 const DIRS = ['.worktrees']
@@ -149,6 +149,32 @@ test('worktree открывается группой под пространст
   assert.deepEqual(openArgs(wt, null, [repo], [], 'work-x'), plain, 'не worktree')
   const open = { workspace_id: 'w4', worktree: { repo_root: '/r', is_linked_worktree: true, checkout_path: wt } }
   assert.deepEqual(openArgs(wt, '/r', [repo, open], [], 'work-x'), plain, 'worktree уже открыт в чужом пространстве')
+})
+
+test('новое пространство: первая вкладка agent, вторая diff с gitone от точки отсчёта', () => {
+  const created = { workspace: { workspace_id: 'w5' }, root_pane: { pane_id: 'w5:p1', tab_id: 'w5:t1' } }
+  const calls = []
+  const call = (args) => {
+    calls.push(args)
+    return args[1] === 'create' ? { root_pane: { pane_id: 'w5:p2' } } : null
+  }
+  assert.equal(arrangeTabs(created, '/r/.worktrees/x', 'abc123', call), true)
+  assert.deepEqual(calls, [
+    ['tab', 'rename', 'w5:t1', 'agent'],
+    ['tab', 'create', '--workspace', 'w5', '--cwd', '/r/.worktrees/x', '--label', 'diff', '--no-focus'],
+    ['pane', 'run', 'w5:p2', 'gitone abc123'],
+  ])
+  calls.length = 0
+  arrangeTabs(created, '/r/.worktrees/x', null, call)
+  assert.deepEqual(calls.at(-1), ['pane', 'run', 'w5:p2', 'gitone'], 'без базы только незакоммиченное')
+  // Сбой вкладок запуск не роняет.
+  assert.equal(arrangeTabs(created, '/x', 'abc', () => { throw new Error('herdr') }), false)
+})
+
+test('--base принимает имя ветки и отклоняет мусор', () => {
+  assert.equal(options([...BASE, '--base', 'feature/PROJ-0']).base, 'feature/PROJ-0')
+  assert.equal(options(BASE).base, null)
+  assert.throws(() => options([...BASE, '--base', 'a b']), /--base/)
 })
 
 test('агент гасится TERM и затем CONT, уже вышедший процесс не ошибка', () => {

@@ -17,7 +17,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-const run = (cwd) => (args) =>
+export const run = (cwd) => (args) =>
   execFileSync('git', ['-C', cwd, '-c', 'core.quotepath=false', ...args], {
     maxBuffer: 512 * 1024 * 1024,
     stdio: ['ignore', 'pipe', 'pipe'],

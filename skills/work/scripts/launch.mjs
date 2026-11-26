@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Запускает сессию задачи в своём пространстве herdr: проверяет дубль, считает места,
-// открывает пространство (worktree группой под репозиторием), метит панель и ждёт, пока агент в ней будет готов. Звать под локом мест:
+// открывает пространство (worktree группой под репозиторием, вкладки agent и diff), метит панель
+// и ждёт, пока агент в ней будет готов. Звать под локом мест:
 //
 //   flock -w 20 -E 75 ~/.local/state/task-run/work.lock node launch.mjs \
-//     --name <имя> --cwd <worktree> --task <ID> [--agent claude] [--task-args '<ID> --work …'] \
+//     --name <имя> --cwd <worktree> --task <ID> [--base <база>] [--agent claude] [--task-args '<ID> --work …'] \
 //     [--session <id> [--resume]] [--replace] [--limit 3] [--timeout 60] [--budget 90] \
 //     -- [аргументы агента и промпт]
 //
@@ -21,6 +22,7 @@ import { homedir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { parseArgs } from 'node:util'
+import { forkPoint, run } from '../../task-run/scripts/fingerprint.mjs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
@@ -158,6 +160,22 @@ export function openArgs(cwd, root, workspaces, panes, label) {
   ]
 }
 
+// Вкладки нового пространства задачи: первая `agent` с агентом, вторая `diff` с gitone.
+// gitone от точки отсчёта задачи показывает её коммиты вместе с незакоммиченным и перечитывает дифф сам;
+// новый файл он видит после `git add -N`. Без точки (базы нет) gitone без аргументов: только незакоммиченное.
+// Вкладки это удобство: их сбой запуск не останавливает.
+export function arrangeTabs(created, cwd, point, call = herdr) {
+  try {
+    const tab = created.root_pane?.tab_id ?? created.tab?.tab_id
+    if (tab) call(['tab', 'rename', tab, 'agent'])
+    const diff = call(['tab', 'create', '--workspace', created.workspace.workspace_id, '--cwd', cwd, '--label', 'diff', '--no-focus'])
+    call(['pane', 'run', diff.root_pane.pane_id, point ? `gitone ${point}` : 'gitone'])
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const socketPath = () => process.env.HERDR_SOCKET_PATH ?? join(homedir(), '.config/herdr/herdr.sock')
 
 export function options(argv) {
@@ -168,6 +186,7 @@ export function options(argv) {
       name: { type: 'string' },
       cwd: { type: 'string' },
       task: { type: 'string' },
+      base: { type: 'string' },
       agent: { type: 'string', default: 'claude' },
       'task-args': { type: 'string' },
       'estimate-first': { type: 'boolean', default: false },
@@ -184,6 +203,7 @@ export function options(argv) {
   if (!/^[a-z][a-z0-9_-]{0,31}$/.test(name ?? '')) throw new Error('--name: до 32 знаков [a-z0-9_-], первая буква')
   if (!cwd || !isAbsolute(cwd)) throw new Error('--cwd: абсолютный путь к worktree')
   if (!/^[A-Za-z0-9._-]+$/.test(task ?? '')) throw new Error('--task: ID задачи или read-<имя>')
+  if (values.base !== undefined && !/^[A-Za-z0-9._/-]+$/.test(values.base)) throw new Error('--base: имя ветки базы')
   if (!Object.hasOwn(AGENTS, agent)) throw new Error(`--agent: один из ${Object.keys(AGENTS).join(', ')}`)
   const a = AGENTS[agent]
   // Новой сессии ID выдаёт скрипт: uuidgen хук lean-ctx не пропускает. Перезапуск берёт прежний.
@@ -205,7 +225,7 @@ export function options(argv) {
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('--timeout: секунды больше нуля')
   if (!Number.isFinite(budget) || budget <= 0) throw new Error('--budget: секунды больше нуля')
   return {
-    name, cwd, task, agent, session, taskArgs, estimateFirst: values['estimate-first'], resume: values.resume, replace: values.replace,
+    name, cwd, task, base: values.base ?? null, agent, session, taskArgs, estimateFirst: values['estimate-first'], resume: values.resume, replace: values.replace,
     limit, timeout, budget, agentArgs: positionals,
   }
 }
@@ -336,6 +356,13 @@ async function launch(opts) {
     const { workspaces = [], panes: all = [] } = herdr(['api', 'snapshot']).snapshot
     const created = herdr(openArgs(opts.cwd, repoRoot(opts.cwd), workspaces, all, `work-${opts.name}`))
     target = { pane_id: created.root_pane.pane_id, workspace_id: created.workspace.workspace_id }
+    let point = null
+    try {
+      point = opts.base && forkPoint(opts.base, run(opts.cwd))
+    } catch {
+      // Базы нет ни в origin, ни локально: gitone покажет только незакоммиченное.
+    }
+    arrangeTabs(created, opts.cwd, point)
   }
   const id = target.pane_id
   herdr(['pane', 'report-metadata', id, '--source', SOURCE, ...tokens(opts).flatMap((t) => ['--token', t])])
