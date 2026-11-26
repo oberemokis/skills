@@ -72,7 +72,7 @@ docs/                     как устроено и как писать
 - стек: `effect`, `golang`, `nitro`, `nuxt`, `pinia`, `playwright`, `pnpm`, `tailwind`, `turbo`, `typescript`, `vite`, `vitest`, `vue`, `vueuse`
 - git: `commit-rules`, `worktree`
 - передача работы между агентами и сессиями: `handoff`
-- [work](./skills/work/SKILL.md): оркестратор в Claude Code под herdr; задачи в Claude Code или OpenCode. `task-run` использует [локальный профиль или SSH](./skills/task-run/remote.md); [task-estimate](./skills/task-estimate/SKILL.md) оценивает время по плану ([симуляция на истории](./skills/task-estimate/simulation.md)).
+- [work](./skills/work/SKILL.md): оркестратор в Claude Code под herdr; задачи в Claude Code или OpenCode; [task-estimate](./skills/task-estimate/SKILL.md) оценивает время по плану ([симуляция на истории](./skills/task-estimate/simulation.md)).
 
 ## Документация
 

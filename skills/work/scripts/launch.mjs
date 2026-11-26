@@ -16,14 +16,11 @@
 // погашен; 2: ошибка вызова; 1: herdr ответил ошибкой.
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
-import { connect } from 'node:net'
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { isAbsolute, join, posix } from 'node:path'
-import { createInterface } from 'node:readline'
+import { isAbsolute, join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { parseArgs } from 'node:util'
-import { bind, profile } from '../../task-run/scripts/remote.mjs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
@@ -98,16 +95,15 @@ export const liveSessions = (panes, dirs) =>
 // Вопрос о доверии папке на экране агента: отвечает на него человек.
 export const asksTrust = (screen, kind = 'claude') => AGENTS[kind].trust.test(screen)
 
-const promptOf = ({ agent, taskArgs, estimateFirst, project }) =>
-  taskArgs && AGENTS[agent].prompt(estimateFirst ? 'task-estimate' : 'task-run', taskArgs + (project ? ` --project ${project}` : ''))
+const promptOf = ({ agent, taskArgs, estimateFirst }) =>
+  taskArgs && AGENTS[agent].prompt(estimateFirst ? 'task-estimate' : 'task-run', taskArgs)
 
 // Метки панели: по ним work находит задачу, её агента и сессию, а подсчёт мест отличает свои панели.
-export function tokens({ task, agent, session, project }) {
+export function tokens({ task, agent, session }) {
   return [
     `${MARK}=1`,
     `task=${task}`,
     `agent=${agent}`,
-    ...(project ? [`project=${project}`] : []),
     ...(session ? [`agent-session=${session}`] : []),
   ]
 }
@@ -128,7 +124,7 @@ export function startArgs(opts, pane, ms) {
 }
 
 // Корень репозитория, если cwd это связанный worktree: первая запись `git worktree list` это основной checkout.
-// Не связанный worktree (основная папка, папка управления SSH, не git) даёт null.
+// Не связанный worktree (основная папка, не git) даёт null.
 export function repoRoot(cwd, git = (args) => execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })) {
   try {
     const top = git(['rev-parse', '--show-toplevel']).trim()
@@ -162,42 +158,7 @@ export function openArgs(cwd, root, workspaces, panes, label) {
   ]
 }
 
-// Куда поставить пространство SSH-задачи: сразу под пространством репозитория, его ветками
-// и пространствами других задач этого проекта. Вложить нельзя: группу в herdr даёт только `worktree open`,
-// а ему нужен локальный worktree, у SSH-задачи его нет. Репозиторий узнаётся по имени папки удалённого корня:
-// пространство с таким worktree, с такой меткой или с панелью в папке с таким именем. Нет такого: null.
-export function besideIndex(workspaces, panes, repo, project) {
-  const order = [...workspaces].sort((a, b) => a.number - b.number)
-  const name = (path) => path?.replace(/\/+$/, '').split('/').pop()
-  const isRepo = (w) => w.worktree
-    ? !w.worktree.is_linked_worktree && w.worktree.repo_name === repo
-    : w.label === repo || panes.some((p) => p.workspace_id === w.workspace_id && name(p.cwd) === repo)
-  const parent = order.findIndex(isRepo)
-  if (parent < 0) return null
-  const root = order[parent].worktree?.repo_root
-  const sibling = (w) => (root && w.worktree?.is_linked_worktree && w.worktree.repo_root === root)
-    || panes.some((p) => p.workspace_id === w.workspace_id && p.tokens?.[MARK] === '1' && p.tokens?.project === project)
-  let index = parent + 1
-  while (index < order.length && sibling(order[index])) index++
-  return index
-}
-
 export const socketPath = () => process.env.HERDR_SOCKET_PATH ?? join(homedir(), '.config/herdr/herdr.sock')
-
-// Запрос к сокету herdr: часть методов, например `workspace.move`, в CLI не выведена.
-export function request(method, params) {
-  return new Promise((resolve, reject) => {
-    const socket = connect(socketPath())
-    socket.on('error', reject)
-    socket.on('connect', () => socket.write(`${JSON.stringify({ id: 'work-launch', method, params })}\n`))
-    createInterface({ input: socket }).once('line', (line) => {
-      socket.end()
-      const reply = JSON.parse(line)
-      if (reply.error) reject(new HerdrError(reply.error.code ?? 'failed', reply.error.message ?? line))
-      else resolve(reply.result)
-    })
-  })
-}
 
 export function options(argv) {
   const { values, positionals } = parseArgs({
@@ -206,8 +167,6 @@ export function options(argv) {
     options: {
       name: { type: 'string' },
       cwd: { type: 'string' },
-      project: { type: 'string' },
-      branch: { type: 'string' },
       task: { type: 'string' },
       agent: { type: 'string', default: 'claude' },
       'task-args': { type: 'string' },
@@ -232,7 +191,6 @@ export function options(argv) {
   const session = values.session ?? a.newSession()
   if (!a.session.test(session)) throw new Error(`--session: не ID сессии ${agent}`)
   const taskArgs = values['task-args'] ?? null
-  if (values.project !== undefined && !/^[a-z0-9][a-z0-9-]*$/.test(values.project)) throw new Error('--project: нужно имя профиля')
   if (agent === 'opencode' && (task.startsWith('read-') || (taskArgs ? positionals.length : positionals.length !== 1))) {
     throw new Error('OpenCode: нужна задача с --task-args или один промпт продолжения')
   }
@@ -247,7 +205,7 @@ export function options(argv) {
   if (!Number.isFinite(timeout) || timeout <= 0) throw new Error('--timeout: секунды больше нуля')
   if (!Number.isFinite(budget) || budget <= 0) throw new Error('--budget: секунды больше нуля')
   return {
-    name, cwd, task, agent, session, taskArgs, project: values.project, branch: values.branch, estimateFirst: values['estimate-first'], resume: values.resume, replace: values.replace,
+    name, cwd, task, agent, session, taskArgs, estimateFirst: values['estimate-first'], resume: values.resume, replace: values.replace,
     limit, timeout, budget, agentArgs: positionals,
   }
 }
@@ -378,14 +336,6 @@ async function launch(opts) {
     const { workspaces = [], panes: all = [] } = herdr(['api', 'snapshot']).snapshot
     const created = herdr(openArgs(opts.cwd, repoRoot(opts.cwd), workspaces, all, `work-${opts.name}`))
     target = { pane_id: created.root_pane.pane_id, workspace_id: created.workspace.workspace_id }
-    const index = opts.repo ? besideIndex(workspaces, all, opts.repo, opts.project) : null
-    if (index !== null) {
-      try {
-        await request('workspace.move', { workspace_id: target.workspace_id, insert_index: index })
-      } catch {
-        // Место в списке только для глаз: не встало, пространство остаётся в конце, запуск идёт дальше.
-      }
-    }
   }
   const id = target.pane_id
   herdr(['pane', 'report-metadata', id, '--source', SOURCE, ...tokens(opts).flatMap((t) => ['--token', t])])
@@ -415,16 +365,6 @@ async function main() {
   let opts
   try {
     opts = options(process.argv.slice(2))
-    if (opts.project) {
-      const p = profile(opts.project)
-      if (p.data.execution?.mode === 'ssh') {
-        if (opts.task.startsWith('read-')) throw new Error('SSH: режим без задачи не поддерживается')
-        opts.cwd = bind(p, opts.task, opts.cwd, opts.branch)
-        opts.repo = posix.basename(JSON.parse(readFileSync(join(opts.cwd, 'binding.json'), 'utf8')).root)
-      } else if (existsSync(join(p.dir, 'control', opts.task, 'binding.json'))) {
-        throw new Error('у задачи есть привязка SSH; переключение на локальный checkout запрещено')
-      }
-    }
     if (!statSync(opts.cwd).isDirectory()) throw new Error(`--cwd: ${opts.cwd} не папка`)
   } catch (error) {
     console.error(error.message)

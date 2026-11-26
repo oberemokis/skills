@@ -12,20 +12,6 @@
     "base": { "type": "string", "minLength": 1 },
     "commit": { "type": "string", "pattern": "\\{summary\\}" },
     "agent": { "enum": ["claude", "codex", "opencode"] },
-    "execution": {
-      "type": "object",
-      "required": ["mode"],
-      "additionalProperties": false,
-      "properties": {
-        "mode": { "enum": ["local", "ssh"] },
-        "host": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
-        "root": { "type": "string", "pattern": "^/[^\\u0000-\\u001f]+$" }
-      },
-      "allOf": [
-        { "if": { "properties": { "mode": { "const": "ssh" } } }, "then": { "required": ["host", "root"] } },
-        { "if": { "properties": { "mode": { "const": "local" } } }, "then": { "properties": { "host": { "enum": [] }, "root": { "enum": [] } } } }
-      ]
-    },
     "tracker": {
       "type": "object",
       "required": ["kind", "check"],

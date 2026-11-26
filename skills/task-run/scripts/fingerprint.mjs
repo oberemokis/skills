@@ -12,7 +12,6 @@
 //   fingerprint.mjs --point <база> [<worktree>]   точка отсчёта, SHA коммита
 //
 // Вывод одной строкой. Код выхода 2: ошибка вызова; 1: git ответил ошибкой или базы нет.
-// Скрипт самодостаточен: для удалённого проекта его исполняют через stdin, импорты соседей не дойдут.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
